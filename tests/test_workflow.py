@@ -10,7 +10,7 @@ project_root = os.path.abspath(os.path.join(current_dir, '..'))
 sys.path.insert(0, project_root)
 
 from pages.login_page import LoginPage
-# from pages.data_form_page import DataFormPage
+from pages.open_vtb import VTBPage
 
 TEST_USER = "autouser"
 TEST_PASS = "secure123"
@@ -23,22 +23,12 @@ class TestDataEntry(unittest.TestCase):
         self.driver = webdriver.Chrome() # Or other browser
         self.driver.maximize_window()
         
-    def test_complete_data_entry(self):
+    def test_complete_process(self):
         # 1. Log in (Using the LoginPage methods)
         login_page = LoginPage(self.driver)
         login_page.navigate_to_login()
         login_page.login(TEST_USER, TEST_PASS)
         
-        # Add a verification step here, like waiting for the dashboard
-        
-        # 2. Enter data (Using the DataFormPage methods)
-        # data_form = DataFormPage(self.driver)
-        # data_form.enter_data(ENTRY_NAME, ENTRY_EMAIL)
-        # data_form.submit_form()
-        
-        # # 3. Final Verification
-        # # Example: Assert that a success message is displayed
-        # self.assertIn("Success", self.driver.page_source)
 
     def tearDown(self):
         # Cleanup (Runs after each test)
