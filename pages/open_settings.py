@@ -67,7 +67,7 @@ class SettingsPage:
         current_group = self.get_current_group()
         
         if current_group == target_group_number:
-            print(f"Group {current_group} is already selected. No action needed.")
+            logger.info(f"Group {current_group} is already selected. No action needed.")
             return
         
         difference = target_group_number - current_group
@@ -102,7 +102,7 @@ class SettingsPage:
         
         WebDriverWait(self.driver, 5).until(
             EC.text_to_be_present_in_element((By.ID, "cboGroup"), target_text))
-        print(f"Successfully changed group to {target_text}.")
+        logger.success(f"Successfully changed group to {target_text}.")
         
         stale_element = self.driver.find_element(By.ID, "cboGroup")
 
