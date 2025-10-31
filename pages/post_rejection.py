@@ -99,12 +99,12 @@ class PICScreen:
         
     def post_rejections(self,
                         rej1:str, 
-                        rej2=None, 
-                        rej3=None,
-                        rej4=None,
-                        rej5=None,
-                        rej6=None
-                        ):
+                        rej2:str|None=None, 
+                        rej3:str|None=None,
+                        rej4:str|None=None,
+                        rej5:str|None=None,
+                        rej6:str|None=None,
+                        post:bool=True):
         
         if not self.in_rejection_screen():
             raise Exception("Not in Rejection Screen.")
@@ -127,11 +127,13 @@ class PICScreen:
                 time.sleep(0.5)
         
                 self._confirm_field_populated(locator, code)
-        
-        self.driver.find_element(By.ID, "OK").click()
+        button = "OK" if post else "Cancel"
+        self.driver.find_element(By.ID, button).click()
         
         WebDriverWait(self.driver, 10).until(
             EC.presence_of_element_located(self.CODE_FIELD)
         )
         
-        self.driver.find_element(By.ID, "OK").click()
+        if post:
+            self.driver.find_element(By.ID, button).click()
+            self.driver.find_element(By.ID, "OK").click()
