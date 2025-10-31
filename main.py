@@ -23,7 +23,10 @@ def main():
     input_file = InputFile(sample_file)
     input_file.load_data()
   
-    driver = webdriver.Chrome()
+    options = webdriver.ChromeOptions()
+    options.add_argument('--headless=new')
+  
+    driver = webdriver.Chrome(options=options)
     login = LoginPage(driver)
     login.navigate_to_login()
     login.login(os.getenv("IDX_USERNAME"), os.getenv("IDX_PASSWORD"))
