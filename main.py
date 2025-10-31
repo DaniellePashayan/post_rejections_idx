@@ -6,13 +6,19 @@ from pages.post_rejection import PICScreen
 from utils.file_reader import InputFile
 
 from selenium import webdriver
-
+from loguru import logger
 from dotenv import load_dotenv
 import os
 
 def main():
     load_dotenv()
-    sample_file = '//Nasdata204/sharedata/Revenue Cycle Business Operations/Receivables Management Team/Production/Daily PICS/WORKED/PIC Scripting 10_28_2025.csv'
+    
+    # save logs to file
+    os.makedirs("logs", exist_ok=True)
+    logger.remove()
+    logger.add("logs/app_{time:YYYY-MM-DD}.log", rotation="1 MB", level="DEBUG")
+    
+    sample_file = './dev/PIC Scripting 10_29_2025.csv'
     
     input_file = InputFile(sample_file)
     input_file.load_data()
@@ -40,7 +46,7 @@ def main():
         pic_screen = PICScreen(driver)
         for index, row in group_data.iterrows():
             pic_screen.select_patient(str(row['Invoice Number']), str(row['Paycode']))
-            pic_screen.post_rejections(str(row['Rej Code 1']))
+            pic_screen.post_rejections(str(row['Rej Code 1']), post=False)
 
 if __name__ == "__main__":
     main()
