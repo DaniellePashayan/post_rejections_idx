@@ -106,8 +106,8 @@ class PaymentPostingBatch:
             self.driver.find_element(*self.PAYMENTS_FIELD).send_keys("0" + Keys.TAB)
             time.sleep(0.5)
             
-            self.driver.find_element(*self.ACTIONS_FIELD).send_keys("O" + Keys.TAB)
-            time.sleep(0.5)
+        self.driver.find_element(*self.ACTIONS_FIELD).send_keys("O" + Keys.TAB)
+        time.sleep(0.5)
             
             
         if self._check_batch_fields():
