@@ -32,7 +32,6 @@ class InputFile:
             self.data = self.data.loc[:, ~self.data.columns.str.contains('^Column', case=False)]
             
             self.filter_by_group()
-            
-            return self.data
+
         except Exception as e:
             logger.error(f"Error loading data from {self.file_path}: {e}")
