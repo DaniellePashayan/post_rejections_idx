@@ -16,7 +16,8 @@ def main():
     # save logs to file
     os.makedirs("logs", exist_ok=True)
     logger.remove()
-    logger.add("logs/app_{time:YYYY-MM-DD}.log", rotation="1 MB", level="DEBUG")
+    logger.add("logs/debug_{time:YYYY-MM-DD}.log", rotation="5 MB", level="DEBUG")
+    logger.add("logs/info_{time:YYYY-MM-DD}.log", rotation="5 MB", level="INFO")
     
     sample_file = './dev/PIC Scripting 10_29_2025.csv'
     
