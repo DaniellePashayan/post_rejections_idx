@@ -4,6 +4,7 @@ from selenium.webdriver.support import expected_conditions as EC
 from selenium.common.exceptions import TimeoutException
 from selenium.webdriver.common.keys import Keys
 import time
+from loguru import logger
 
 class PICScreen:
     HEADER = (By.ID, "formHeader")
@@ -60,7 +61,7 @@ class PICScreen:
         return False
     
     def _enter_rejection_code(self, locator: tuple, code: str):
-        rej_field = WebDriverWait(driver, 10).until(EC.presence_of_element_located(locator))
+        rej_field = WebDriverWait(self.driver, 10).until(EC.presence_of_element_located(locator))
         rej_field.click()
         rej_field.clear()
         rej_field.send_keys(code + Keys.TAB)

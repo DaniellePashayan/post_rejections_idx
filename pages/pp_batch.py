@@ -4,6 +4,7 @@ from selenium.webdriver.support import expected_conditions as EC
 from selenium.common.exceptions import TimeoutException
 from selenium.webdriver.common.keys import Keys
 import time
+from loguru import logger
 
 class PaymentPostingBatch:
     BATCH_HEADER = (By.CLASS_NAME, "fe_c_tabs__label-text")
@@ -106,9 +107,11 @@ class PaymentPostingBatch:
             self.driver.find_element(*self.PAYMENTS_FIELD).send_keys("0" + Keys.TAB)
             time.sleep(0.5)
             
-        self.driver.find_element(*self.ACTIONS_FIELD).send_keys("O" + Keys.TAB)
-        time.sleep(0.5)
-            
+            self.driver.find_element(*self.ACTIONS_FIELD).send_keys("O" + Keys.TAB)
+            time.sleep(0.5)
+        else:
+            logger.info("A batch is already open.")
+            self.driver.find_element(*self.BATCH_NUMBER_FIELD).send_keys(Keys.TAB)
             
         if self._check_batch_fields():
             self.driver.find_element(*self.OK_BUTTON).click()

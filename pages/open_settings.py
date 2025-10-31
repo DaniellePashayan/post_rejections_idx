@@ -7,6 +7,7 @@ from selenium.webdriver.support import expected_conditions as EC
 from selenium.common.exceptions import TimeoutException
 from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.common.action_chains import ActionChains
+import time
 
 class SettingsPage:
     MENU_BUTTON = (By.ID, "user_menu_btn-button")
@@ -49,7 +50,7 @@ class SettingsPage:
         
         WebDriverWait(self.driver, 5).until(
             EC.presence_of_element_located(self.GROUP_SELECTOR))
-        group_selector = driver.find_element(*self.GROUP_SELECTOR)
+        group_selector = self.driver.find_element(*self.GROUP_SELECTOR)
         current_selection = group_selector.find_element(*self.CURRENT_SELECTION).text
         if cancel:
             cancel_button = WebDriverWait(self.driver, 10).until(
@@ -84,7 +85,7 @@ class SettingsPage:
 
         WebDriverWait(self.driver, 5).until(
             EC.presence_of_element_located(self.GROUP_SELECTOR))
-        group_selector = driver.find_element(*self.GROUP_SELECTOR)
+        group_selector = self.driver.find_element(*self.GROUP_SELECTOR)
         group_selector.click()
         time.sleep(0.5)
         
