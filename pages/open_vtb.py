@@ -37,6 +37,23 @@ class VTBPage:
     def toggle_vtb(self):
         self.driver.find_element(*self.VTB_BUTTON).click()
 
+    def validate_current_selection(self, desired_option:str):
+        if not self.is_vtb_open():
+            self.toggle_vtb()
+        
+        WebDriverWait(self.driver, 10).until(EC.presence_of_element_located(self.VTB_CONTAINER))
+        vtb_items = self.driver.find_elements(By.CSS_SELECTOR, "div.vtb-container.open .vtb-item")
+        
+        for item in vtb_items:
+            if "selected" in item.get_attribute("class"):
+                current_option = item.text.strip()
+                break
+        
+        if self.is_vtb_open():
+            self.toggle_vtb()
+        
+        return current_option == desired_option
+
     def confirm_navigation(self):
         WebDriverWait(self.driver, 10).until(
             EC.presence_of_element_located(self.HEADER_TEXT)
