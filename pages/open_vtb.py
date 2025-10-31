@@ -1,6 +1,8 @@
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
+import time
+from loguru import logger
 
 class VTBPage:
     VTB_BUTTON = (By.ID, "vtbToggleButton")
@@ -28,7 +30,7 @@ class VTBPage:
     def is_vtb_open(self):
         try:
             vtb_element = self.driver.find_element(*self.VTB_CONTAINER)
-            return 'expanded' in vtb_element.get_attribute('class')
+            return 'open' in vtb_element.get_attribute('class')
         except:
             return False
 
@@ -58,3 +60,8 @@ class VTBPage:
             raise ValueError(f"Option '{option_text}' not found in VTB options.")
         
         self.confirm_navigation()
+        time.sleep(1)
+        
+        if self.is_vtb_open():
+            logger.debug("VTB is still open, closing it now.")
+            self.toggle_vtb()
