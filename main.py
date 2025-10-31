@@ -28,25 +28,26 @@ def main():
     login.navigate_to_login()
     login.login(os.getenv("IDX_USERNAME"), os.getenv("IDX_PASSWORD"))
     
-    for group, group_data in input_file.group_data.items():
-        settings_page = SettingsPage(driver)
-        settings_page.change_group(group) 
-
-        vtb = VTBPage(driver)
-        vtb.select_vtb_option("Payment Posting")
-
-        pp_batch = PaymentPostingBatch(driver)
-        pp_batch.open_batch()
+    settings_page = SettingsPage(driver)
+    vtb = VTBPage(driver)
+    pp_batch = PaymentPostingBatch(driver)
+    pic_screen = PICScreen(driver)
         
+    for group, group_data in input_file.group_data.items():
         if group_data.empty:
             logger.info(f"No data for group {group}, skipping.")
             continue
         
-        group_data = group_data.head()
-        pic_screen = PICScreen(driver)
+        settings_page.change_group(group) 
+
+        if not vtb.validate_current_selection("Payment Posting"):
+            vtb.select_vtb_option("Payment Posting")
+
+        pp_batch.open_batch()
+        
         for index, row in group_data.iterrows():
             pic_screen.select_patient(str(row['Invoice Number']), str(row['Paycode']))
-            pic_screen.post_rejections(str(row['Rej Code 1']), post=False)
+            pic_screen.post_rejections(str(row['Rej Code 1']))
 
 if __name__ == "__main__":
     main()

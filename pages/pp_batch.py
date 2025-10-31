@@ -133,6 +133,9 @@ class PaymentPostingBatch:
         else:
             logger.info("A batch is already open.")
             self.driver.find_element(*self.BATCH_NUMBER_FIELD).send_keys(Keys.TAB)
-            
+        
         if self._check_batch_fields():
+            WebDriverWait(self.driver, 10).until(
+                EC.element_to_be_clickable(self.OK_BUTTON)
+            )
             self.driver.find_element(*self.OK_BUTTON).click()

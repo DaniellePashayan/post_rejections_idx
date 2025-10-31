@@ -24,6 +24,7 @@ class PICScreen:
     
     def in_pic_screen(self):
         try:
+            time.sleep(1)
             header = WebDriverWait(self.driver, 5).until(
                 EC.presence_of_element_located(self.HEADER)
             )
@@ -75,6 +76,7 @@ class PICScreen:
         WebDriverWait(self.driver, 10).until(
             EC.presence_of_element_located(self.PATIENT_FIELD)
         )
+        time.sleep(0.5)
         
         # check if theres a value in patient field
         if self._confirm_field_populated(self.PATIENT_FIELD):
@@ -103,8 +105,7 @@ class PICScreen:
                         rej3:str|None=None,
                         rej4:str|None=None,
                         rej5:str|None=None,
-                        rej6:str|None=None,
-                        post:bool=True):
+                        rej6:str|None=None):
         
         if not self.in_rejection_screen():
             raise Exception("Not in Rejection Screen.")
@@ -127,13 +128,11 @@ class PICScreen:
                 time.sleep(0.5)
         
                 self._confirm_field_populated(locator, code)
-        button = "OK" if post else "Cancel"
-        self.driver.find_element(By.ID, button).click()
+
+        self.driver.find_element(By.ID, "OK").click()
         
         WebDriverWait(self.driver, 10).until(
             EC.presence_of_element_located(self.CODE_FIELD)
         )
         
-        if post:
-            self.driver.find_element(By.ID, button).click()
-            self.driver.find_element(By.ID, "OK").click()
+        self.driver.find_element(By.ID, "OK").click()
