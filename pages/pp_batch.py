@@ -76,6 +76,9 @@ class PaymentPostingBatch:
                 )
                 # Use the locator_tuple to find the element
                 field_value = self.driver.find_element(*locator_tuple).get_attribute("value")
+                if field_value == "":
+                    logger.warning(f"Field {field_name} is empty.")
+                    return False
                 
                 # Log using the string key (field_name)
                 logger.debug(f"Field {field_name} is present with value: {field_value}")
@@ -91,23 +94,41 @@ class PaymentPostingBatch:
     def open_batch(self):
         if not self.is_batch_open():
             logger.info("No batch is currently open. Opening a new batch.")
+            time.sleep(1)
+            
+            WebDriverWait(self.driver, 5).until(
+                EC.presence_of_element_located(self.BATCH_NUMBER_FIELD)
+            )
+            time.sleep(3)
         
-            self.driver.find_element(*self.BATCH_NUMBER_FIELD).send_keys("G" + Keys.TAB)
+            curr_field = self.driver.find_element(*self.BATCH_NUMBER_FIELD)
+            curr_field.click()
+            curr_field.send_keys("G" + Keys.TAB)
             time.sleep(0.5)
             
-            self.driver.find_element(*self.BANK_DESPOIT_DATE_FIELD).send_keys("T" + Keys.TAB)
+            curr_field = self.driver.find_element(*self.BANK_DESPOIT_DATE_FIELD)
+            curr_field.click()
+            curr_field.send_keys("T" + Keys.TAB)
             time.sleep(0.5)
             
-            self.driver.find_element(*self.DESCRIPTION_FIELD).send_keys("AUTO - PIC Scripting" + Keys.TAB)
+            curr_field = self.driver.find_element(*self.DESCRIPTION_FIELD)
+            curr_field.click()
+            curr_field.send_keys("AUTO - PIC Scripting" + Keys.TAB)
             time.sleep(0.5)
             
-            self.driver.find_element(*self.PAYMENT_TYPE_FIELD).send_keys("3" + Keys.TAB)
+            curr_field = self.driver.find_element(*self.PAYMENT_TYPE_FIELD)
+            curr_field.click()
+            curr_field.send_keys("3" + Keys.TAB)
             time.sleep(0.5)
             
-            self.driver.find_element(*self.PAYMENTS_FIELD).send_keys("0" + Keys.TAB)
+            curr_field = self.driver.find_element(*self.PAYMENTS_FIELD)
+            curr_field.click()
+            curr_field.send_keys("0" + Keys.TAB)
             time.sleep(0.5)
             
-            self.driver.find_element(*self.ACTIONS_FIELD).send_keys("O" + Keys.TAB)
+            curr_field = self.driver.find_element(*self.ACTIONS_FIELD)
+            curr_field.click()
+            curr_field.send_keys("O" + Keys.TAB)
             time.sleep(0.5)
         else:
             logger.info("A batch is already open.")
