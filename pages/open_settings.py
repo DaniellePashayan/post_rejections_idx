@@ -1,3 +1,13 @@
+from selenium import webdriver
+from selenium.webdriver.common.by import By
+from selenium.webdriver.chrome.service import Service
+from selenium.webdriver.chrome.options import Options
+from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.support import expected_conditions as EC
+from selenium.common.exceptions import TimeoutException
+from selenium.webdriver.common.keys import Keys
+from selenium.webdriver.common.action_chains import ActionChains
+
 class SettingsPage:
     MENU_BUTTON = (By.ID, "user_menu_btn-button")
     HOG_SCREEN_LINK = (By.ID, "tools_HOG_1")
@@ -66,13 +76,10 @@ class SettingsPage:
         if difference > 0:
             # Target is a higher number, so press Down
             key_to_send = "\ue015"
-            print(f"Current {current_group} < Target {target_group_number}. Pressing DOWN {presses} times.")
         elif difference < 0:
             # Target is a lower number, so press Up
             key_to_send = "\ue013"
-            print(f"Current {current_group} > Target {target_group_number}. Pressing UP {presses} times.")
         else:
-            print(f"Group {current_group} is already selected. No action needed.")
             return # Exit if no change is required
 
         WebDriverWait(self.driver, 5).until(
