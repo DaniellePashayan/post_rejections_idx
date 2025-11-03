@@ -30,6 +30,8 @@ class InputFile:
             
             # drop any columns that have the name "COlumn" in the name
             self.data = self.data.loc[:, ~self.data.columns.str.contains('^Column', case=False)]
+            if 'Done' in self.data.columns:
+                self.data = self.data[self.data['Done'].isna()]
             
             self.filter_by_group()
 
