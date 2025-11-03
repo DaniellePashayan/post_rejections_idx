@@ -9,6 +9,7 @@ from selenium import webdriver
 from loguru import logger
 from dotenv import load_dotenv
 import os
+from tqdm import tqdm
 
 def main():
     load_dotenv()
@@ -19,13 +20,13 @@ def main():
     logger.add("logs/debug_{time:YYYY-MM-DD}.log", rotation="5 MB", level="DEBUG")
     logger.add("logs/info_{time:YYYY-MM-DD}.log", rotation="5 MB", level="INFO")
     
-    sample_file = './dev/PIC Scripting 10_29_2025.csv'
+    sample_file = './dev/PIC Templates/1.csv'
     
     input_file = InputFile(sample_file)
     input_file.load_data()
   
     options = webdriver.ChromeOptions()
-    options.add_argument('--headless=new')
+    # options.add_argument('--headless=new')
   
     driver = webdriver.Chrome(options=options)
     login = LoginPage(driver)
@@ -49,7 +50,7 @@ def main():
 
         pp_batch.open_batch()
         
-        for index, row in group_data.iterrows():
+        for index, row in tqdm(group_data.iterrows(), desc=f"Processing group {group}"):
             pic_screen.select_patient(str(row['Invoice Number']), str(row['Paycode']))
             pic_screen.post_rejections(str(row['Rej Code 1']))
 
