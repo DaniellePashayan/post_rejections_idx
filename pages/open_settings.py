@@ -8,6 +8,7 @@ from selenium.common.exceptions import TimeoutException
 from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.common.action_chains import ActionChains
 import time
+from loguru import logger
 
 class SettingsPage:
     MENU_BUTTON = (By.ID, "user_menu_btn-button")
