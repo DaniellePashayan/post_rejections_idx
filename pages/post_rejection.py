@@ -19,6 +19,9 @@ class PICScreen:
     REJ5_FIELD = (By.ID, "sAf1r5")
     REJ6_FIELD = (By.ID, "sAf1r6")
     
+    MODAL_INDICATOR = (By.CSS_SELECTOR, "div.fe_c_overlay__dialog.fe_c_modal__dialog.fe_c_modal__dialog--large.fe_c_modal__dialog--padded.fe_is-info")
+    MODAL_CLOSE = (By.ID, "modalButtonOk")
+    
     def __init__(self, driver):
         self.driver = driver
     
@@ -67,6 +70,16 @@ class PICScreen:
         rej_field.clear()
         rej_field.send_keys(code + Keys.TAB)
     
+    def check_for_modal(self):
+        try:
+            WebDriverWait(self.driver, 3).until(
+                EC.presence_of_element_located(self.MODAL_INDICATOR)
+            )
+            self.driver.find_element(*self.MODAL_CLOSE).click()
+            logger.info("Modal detected and closed.")
+        except TimeoutException:
+            logger.debug("No modal detected.")
+    
     def select_patient(self, 
                        invoice_number:str, 
                        paycode:str):
@@ -85,6 +98,8 @@ class PICScreen:
             time.sleep(1)
         self.driver.find_element(*self.PATIENT_FIELD).send_keys("-" + invoice_number + Keys.TAB)
         time.sleep(0.5)
+        
+        self.check_for_modal()
             
         if not self._confirm_field_populated(self.INVOICE_FIELD, invoice_number):
             logger.error("Invoice number field not populated after entry.")
