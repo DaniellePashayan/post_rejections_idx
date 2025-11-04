@@ -131,8 +131,7 @@ class PaymentPostingBatch:
             curr_field.send_keys("O" + Keys.TAB)
             time.sleep(0.5)
         else:
-            logger.info("A batch is already open.")
-            self.driver.find_element(*self.BATCH_NUMBER_FIELD).send_keys(Keys.TAB)
+            self.driver.find_element(*self.ACTIONS_FIELD).click()
         
         if self._check_batch_fields():
             WebDriverWait(self.driver, 10).until(
