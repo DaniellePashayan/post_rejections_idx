@@ -63,12 +63,13 @@ class DBManager:
                 session.add_all(new_rejections_to_add)
                 session.commit()
                 logger.success(f"Added {len(new_rejections_to_add)} new rejections to the database.")
-    
-    def get_unposted_invoices(self, file_name: str) -> List[Rejections]:
+            
+    def get_unposted_invoices(self, file_name: str, group:int) -> List[Rejections]:
         with Session(self.engine) as session:
             statement = select(Rejections).where(
                 Rejections.FileName == file_name,
-                Rejections.Completed == 0
+                Rejections.Completed == 0,
+                Rejections.Group == group
             )
             return session.exec(statement).all()
     
