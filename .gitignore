@@ -12,3 +12,4 @@ wheels/
 *.ipynb
 /dev
 /logs
+*.db
