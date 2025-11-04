@@ -12,6 +12,23 @@ class InputFile:
             6: {},
         }
 
+    def format_data(self):
+        data = self.data.copy()
+        
+        # Remove leading and trailing spaces from column names
+        data.columns = data.columns.str.replace(' ', '')
+        
+        # Replace NaN values with empty strings
+        data = data.where(pd.notnull(data), '')
+        
+        # convert Completed column to boolean
+        if 'Completed' in data.columns:
+            data['Completed'] = data['Completed'].astype(bool)
+        else:
+            data['Completed'] = False
+        
+        self.data = data
+    
     def filter_by_group(self):
         if self.data is None:
             logger.error("Data not loaded. Call load_data() first.")
@@ -22,16 +39,16 @@ class InputFile:
             self.group_data[group_number] = filtered_data
             logger.info(f"Filtered data for group {group_number}, {len(filtered_data)} records found.")
         return filtered_data
-    
+
     def load_data(self):
         try:
             self.data = pd.read_csv(self.file_path)
             logger.info(f"Loaded data from {self.file_path}")
             
+            self.format_data()
+            
             # drop any columns that have the name "COlumn" in the name
             self.data = self.data.loc[:, ~self.data.columns.str.contains('^Column', case=False)]
-            if 'Done' in self.data.columns:
-                self.data = self.data[self.data['Done'].isna()]
             
             self.filter_by_group()
 
