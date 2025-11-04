@@ -27,6 +27,8 @@ class InputFile:
         else:
             data['Completed'] = False
         
+        data['FileName'] = self.file_path
+                
         self.data = data
     
     def filter_by_group(self):
