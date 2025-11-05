@@ -82,7 +82,7 @@ class SettingsPage:
             # Target is a lower number, so press Up
             key_to_send = "\ue013"
         else:
-            return # Exit if no change is required
+            ActionChains(self.driver).click(cancel_button).perform()
 
         WebDriverWait(self.driver, 5).until(
             EC.presence_of_element_located(self.GROUP_SELECTOR))
