@@ -5,6 +5,7 @@ from selenium.common.exceptions import TimeoutException
 from selenium.webdriver.common.keys import Keys
 import time
 from loguru import logger
+import re
 
 from pages.modals.payment_code import PaymentCodesModal
 
@@ -19,6 +20,22 @@ class PICScreen_Main:
     
     def __init__(self, driver):
         self.driver = driver
+    
+    def get_current_batch_group(self):
+        try:
+            time.sleep(1)
+            header = WebDriverWait(self.driver, 5).until(
+                EC.presence_of_element_located(self.HEADER)
+            )
+            header_text = header.text
+            # check if header contains "Post Receipts"
+            match = re.search(r'Grp:(\d+)', header_text)
+            if match:
+                return match.group(1)
+            else:
+                return 0
+        except TimeoutException:
+            return 0
     
     def in_pic_screen(self):
         try:
