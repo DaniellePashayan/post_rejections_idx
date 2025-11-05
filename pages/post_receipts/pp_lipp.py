@@ -12,9 +12,22 @@ from utils.database import Rejections
 class PP_LIPP:
     APPROVED_FIELD_BASE = 'sBf33r'
     REJECTION_FIELD_BASE = 'sBf25r'
+    
+    BULK_PMT_FIELD = (By.ID, 'sBf92')
+    
+    OK_BUTTON = (By.ID, 'OK')
+    CANCEL_BUTTON = (By.ID, 'Cancel')
 
     def __init__(self, driver):
         self.driver = driver
+    
+    def num_rows_to_process(self) -> int:
+        R1_DROPDOWN_LOCATOR = (By.ID, 'r1-button')
+        R1_CPT_INDEX_LOCATOR = (By.ID, 'sBf8r1')
+        first_row_dropdown = self.driver.find_element(*R1_DROPDOWN_LOCATOR).text
+
+        first_row_cpt_index = self.driver.find_element(*R1_CPT_INDEX_LOCATOR).get_attribute('value')
+        return int(first_row_cpt_index) - int(first_row_dropdown) +1
     
     def confirm_on_rejection_screen(self):
         active_buttons = self.driver.find_elements(By.CSS_SELECTOR, "button.fe_c_tabs__label.fe_is-selected")
@@ -24,8 +37,8 @@ class PP_LIPP:
         return False
     
     def populate_row(self, row_number: int, rejection: Rejections):
-        approved_locator = (By.ID, f'{self.APPROVED_FIELD_BASE}1')
-        rejection_locator = (By.ID, f'{self.REJECTION_FIELD_BASE}1')
+        approved_locator = (By.ID, f'{self.APPROVED_FIELD_BASE}{row_number}')
+        rejection_locator = (By.ID, f'{self.REJECTION_FIELD_BASE}{row_number}')
 
         approved_field = WebDriverWait(self.driver, 10).until(EC.presence_of_element_located(approved_locator))
         rejection_field = WebDriverWait(self.driver, 10).until(EC.presence_of_element_located(rejection_locator))
@@ -36,8 +49,15 @@ class PP_LIPP:
 
         rejection_field.click()
         rejection_field.clear()
-        rejection_field.send_keys(rejection.RejCode1 + Keys.TAB)
-        
-        pp_lipp_rej = PP_LIPP_Rejections(driver, rejection)
-        if pp_lipp_rej.on_rejection_screen:
-            pp_lipp_rej.post_li_rejections()
+        rejection_field.send_keys(rejection.RejCode1 + Keys.TAB * 2)
+    
+    def finalize_posting(self):
+        # ensure no cash is posted
+        payment_amounts = float(self.driver.find_element(*BULK_PMT_FIELD).get_attribute('value'))
+        if payment_amounts != 0:
+            logger.error("Payment amounts field is not zeroed out.")
+            self.driver.find_element(*CANCEL_BUTTON).click()
+            return False
+        else:
+            self.driver.find_element(*OK_BUTTON).click()
+            return True

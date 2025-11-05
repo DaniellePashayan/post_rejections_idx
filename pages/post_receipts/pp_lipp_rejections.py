@@ -16,6 +16,7 @@ class PP_LIPP_Rejections:
     REJECTION_FIELD_BASE = 'sAf1r'
     REMARK_FIELD_BASE = 'sAf5r'
     OK_BUTTON = (By.ID, 'OK')
+    ACTIONS_BUTTON = (By.ID, 'Actions')
     
     def __init__(self, driver, rejection: Rejections):
         self.driver = driver
@@ -24,9 +25,9 @@ class PP_LIPP_Rejections:
         self.on_rejection_screen = self._on_rejection_screen()
     
     def _on_rejection_screen(self):
-        active_buttons = WebDriverWait(driver, 10).until(EC.presence_of_all_elements_located(self.ACTIVE_BUTTONS))
+        active_buttons = WebDriverWait(self.driver, 10).until(EC.presence_of_all_elements_located(self.ACTIVE_BUTTONS))
         return 'Rejections' in [button.text for button in active_buttons]
-    
+        
     def _populate_input_field(self, base_locator, value):
         field_locator = (By.ID, f'{base_locator}')
         input_field = WebDriverWait(self.driver, 10).until(EC.presence_of_element_located(field_locator))
@@ -59,10 +60,10 @@ class PP_LIPP_Rejections:
                     
                     ## POST REJECTION CODE
                     REJECTION_FIELD_LOCATOR = (By.ID, f'{self.REJECTION_FIELD_BASE}{index}')
-                    curr_rej_value = driver.find_element(*REJECTION_FIELD_LOCATOR).get_attribute('value')
+                    curr_rej_value = self.driver.find_element(*REJECTION_FIELD_LOCATOR).get_attribute('value')
                     if not curr_rej_value:
                         logger.debug(f"Entering rejection code for {key}: {value}")
-                        rejection_field = driver.find_element(*REJECTION_FIELD_LOCATOR)
+                        rejection_field = self.driver.find_element(*REJECTION_FIELD_LOCATOR)
                         logger.debug(rejection_field.get_attribute('id'))
                         rejection_field.click()
                         rejection_field.send_keys(value + Keys.TAB)
@@ -73,7 +74,7 @@ class PP_LIPP_Rejections:
                     remark_value = self.rejection_dict.get(remark_key, '')
                     logger.debug(f"Remark for {key}: {remark_value}")
                     REMARK_FIELD_LOCATOR = (By.ID, f'{self.REMARK_FIELD_BASE}{index}')
-                    remark_field = driver.find_element(*REMARK_FIELD_LOCATOR)
+                    remark_field = self.driver.find_element(*REMARK_FIELD_LOCATOR)
                     if remark_value:
                         logger.debug(f"Entering remark for {key}: {remark_value}")
                         remark_field.click()
