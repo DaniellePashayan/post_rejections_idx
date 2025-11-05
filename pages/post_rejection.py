@@ -6,21 +6,16 @@ from selenium.webdriver.common.keys import Keys
 import time
 from loguru import logger
 
-class PICScreen:
+from pages.modals.payment_code import PaymentCodesModal
+
+class PICScreen_Main:
     HEADER = (By.ID, "formHeader")
     PATIENT_FIELD = (By.ID, "sAf1")
     INVOICE_FIELD = (By.ID, "sAf6")
     CODE_FIELD = (By.ID, "sAf21r1")
+    CODE_MAGNIFY_ICON = (By.ID, "sAf21r1-button")
     
-    REJ1_FIELD = (By.ID, "sAf1r1")
-    REJ2_FIELD = (By.ID, "sAf1r2")
-    REJ3_FIELD = (By.ID, "sAf1r3")
-    REJ4_FIELD = (By.ID, "sAf1r4")
-    REJ5_FIELD = (By.ID, "sAf1r5")
-    REJ6_FIELD = (By.ID, "sAf1r6")
-    
-    MODAL_INDICATOR = (By.CSS_SELECTOR, "div.fe_c_overlay__dialog.fe_c_modal__dialog.fe_c_modal__dialog--large.fe_c_modal__dialog--padded.fe_is-info")
-    MODAL_CLOSE = (By.ID, "modalButtonOk")
+    LI_POST_CHECKBOX = (By.XPATH, "//input[@id='sAf32r1']")
     
     def __init__(self, driver):
         self.driver = driver
@@ -56,7 +51,7 @@ class PICScreen:
         logger.debug(f"Field {locator} populated with value: {field_value}")
         return True
     
-    def in_rejection_screen(self):
+    def _in_rejection_screen(self):
         header_text = WebDriverWait(self.driver, 10).until(
             EC.presence_of_element_located((By.XPATH, '//*[@id="tabsControlUR53-main"]/ul/li/button'))
         )
@@ -70,84 +65,47 @@ class PICScreen:
         rej_field.clear()
         rej_field.send_keys(code + Keys.TAB)
     
-    def check_for_modal(self):
-        try:
-            WebDriverWait(self.driver, 3).until(
-                EC.presence_of_element_located(self.MODAL_INDICATOR)
-            )
-            self.driver.find_element(*self.MODAL_CLOSE).click()
-            logger.info("Modal detected and closed.")
-        except TimeoutException:
-            logger.debug("No modal detected.")
-    
-    def select_patient(self, 
-                       invoice_number:str, 
-                       paycode:str):
-        if not self.in_pic_screen():
-            raise Exception("Not in PIC Screen.")
-        
-        WebDriverWait(self.driver, 10).until(
-            EC.presence_of_element_located(self.PATIENT_FIELD)
-        )
-        time.sleep(0.5)
-        
-        # check if theres a value in patient field
-        if self._confirm_field_populated(self.PATIENT_FIELD):
-            # clear and enter patient field
-            self.driver.find_element(*self.PATIENT_FIELD).clear()
-            time.sleep(1)
-        self.driver.find_element(*self.PATIENT_FIELD).send_keys("-" + invoice_number + Keys.TAB)
-        time.sleep(0.5)
-        
-        self.check_for_modal()
-            
-        if not self._confirm_field_populated(self.INVOICE_FIELD, invoice_number):
-            logger.error("Invoice number field not populated after entry.")
-            time.sleep(0.5)
-            
-        if not self._confirm_field_populated(self.CODE_FIELD, paycode):
-            code_field = self.driver.find_element(*self.CODE_FIELD)
-            code_field.click()
-            code_field.send_keys(paycode + Keys.TAB + Keys.TAB + Keys.TAB + Keys.TAB)
-            time.sleep(0.5)
-        
-        if not self.in_rejection_screen():
-            raise Exception("Not in Rejection Screen after entering invoice and paycode.")
-        
-    def post_rejections(self,
-                        rej1:str, 
-                        rej2:str|None=None, 
-                        rej3:str|None=None,
-                        rej4:str|None=None,
-                        rej5:str|None=None,
-                        rej6:str|None=None):
-        
-        if not self.in_rejection_screen():
-            raise Exception("Not in Rejection Screen.")
-        
-        rejections_to_post = [
-            (self.REJ1_FIELD, rej1),
-            (self.REJ2_FIELD, rej2),
-            (self.REJ3_FIELD, rej3),
-            (self.REJ4_FIELD, rej4),
-            (self.REJ5_FIELD, rej5),
-            (self.REJ6_FIELD, rej6)
-        ]
-        
-        for locator, code in rejections_to_post:
-            if code:
-                WebDriverWait(self.driver, 10).until(
-                    EC.presence_of_element_located(locator)
-                )
-                self._enter_rejection_code(locator, code)
-                time.sleep(0.5)
-        
-                self._confirm_field_populated(locator, code)
+    def set_line_item_post_checkbox(self, post_line_item: bool):
+        def check_if_checkbox_selected(element):
+            is_checked = element.is_selected()
+            logger.debug(f"Checkbox selected: {is_checked}")
+            return is_checked
 
-        self.driver.find_element(By.ID, "OK").click()
+        def toggle_checkbox(element):
+            element.send_keys(Keys.SPACE)
+                
+        li_post_checkbox = WebDriverWait(self.driver, 10).until(EC.element_to_be_clickable(self.LI_POST_CHECKBOX))
+        is_checked = li_post_checkbox.is_selected()
+        logger.debug(f"Line Item Post Checkbox selected: {is_checked}")
         
-        WebDriverWait(self.driver, 10).until(
-            EC.presence_of_element_located(self.CODE_FIELD)
-        )
+        if post_line_item:
+            if not check_if_checkbox_selected(li_post_checkbox):
+                toggle_checkbox(li_post_checkbox)
+            self.open_line_item_posting()
+        else:
+            if check_if_checkbox_selected(li_post_checkbox):
+                toggle_checkbox(li_post_checkbox)
+    
+    def enter_paycode(self, paycode:str = None): 
+        if not paycode:
+            self.driver.find_element(*self.CODE_MAGNIFY_ICON).click()
+            payment_codes_modal = PaymentCodesModal(self.driver)
+            paycode = payment_codes_modal.get_paycode_options()[0]
         
-        self.driver.find_element(By.ID, "OK").click()
+        time.sleep(0.5)
+        
+        code_field = WebDriverWait(self.driver, 10).until(EC.element_to_be_clickable(self.CODE_FIELD))
+        code_field.click()
+        code_field.clear()
+        code_field.send_keys(paycode + Keys.TAB)
+        
+    def open_paycode_modal(self):
+        self.driver.find_element(*self.CODE_MAGNIFY_ICON).click()        
+    
+    def open_line_item_posting(self):
+        buttons = self.driver.find_elements(By.CSS_SELECTOR, "button.fe_c_tabs__label")
+        for btn in buttons:
+            if btn.text == 'Line Item Payment Posting':
+                btn.click()
+      
+
