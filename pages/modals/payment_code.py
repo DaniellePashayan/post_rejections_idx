@@ -5,6 +5,7 @@ from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.common.exceptions import TimeoutException
 from loguru import logger
+import time
 
 class PaymentCodesModal:
     MODAL_LOCATOR = (By.CSS_SELECTOR, 'div.fe_c_overlay__dialog.fe_c_lightbox__dialog.fe_c_lightbox__dialog--medium')
@@ -48,7 +49,7 @@ class PaymentCodesModal:
             
             if 'MANUAL' in name.text.upper():
                 available_options.add(code.text)
-
+        time.sleep(0.5)
         self.close_modal()
         available_options = list(available_options)
         
