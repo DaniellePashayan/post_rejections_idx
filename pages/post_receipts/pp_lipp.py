@@ -8,10 +8,12 @@ import time
 from loguru import logger
 
 from utils.database import Rejections
+from pages.post_receipts.post_dropdown import PostDropdown
 
 class PP_LIPP:
     APPROVED_FIELD_BASE = 'sBf33r'
     REJECTION_FIELD_BASE = 'sBf25r'
+    ROW_BASE = 'sBrg1r'
     
     BULK_PMT_FIELD = (By.ID, 'sBf92')
     
@@ -37,27 +39,28 @@ class PP_LIPP:
         return False
     
     def populate_row(self, row_number: int, rejection: Rejections):
-        approved_locator = (By.ID, f'{self.APPROVED_FIELD_BASE}{row_number}')
         rejection_locator = (By.ID, f'{self.REJECTION_FIELD_BASE}{row_number}')
 
-        approved_field = WebDriverWait(self.driver, 10).until(EC.presence_of_element_located(approved_locator))
-        rejection_field = WebDriverWait(self.driver, 10).until(EC.presence_of_element_located(rejection_locator))
+        row_element = self.driver.find_element(By.ID, self.ROW_BASE + str(row_number))
+        dropdown = PostDropdown(self.driver, row_element)
+        dropdown.set_value('R')
 
-        approved_field.click()
-        approved_field.clear()
-        approved_field.send_keys('0.00')
-
-        rejection_field.click()
-        rejection_field.clear()
-        rejection_field.send_keys(rejection.RejCode1 + Keys.TAB * 2)
+        try:
+            rejection_field = WebDriverWait(self.driver, 3)\
+                .until(EC.element_to_be_clickable(rejection_locator))
+            rejection_field.click()
+            rejection_field.clear()
+            rejection_field.send_keys(rejection.RejCode1 + Keys.TAB * 2)
+        except TimeoutException:
+            logger.error(f"Rejection field for row {row_number} not found or not clickable.")
     
     def finalize_posting(self):
         # ensure no cash is posted
-        payment_amounts = float(self.driver.find_element(*BULK_PMT_FIELD).get_attribute('value'))
+        payment_amounts = float(self.driver.find_element(*self.BULK_PMT_FIELD).get_attribute('value'))
         if payment_amounts != 0:
             logger.error("Payment amounts field is not zeroed out.")
-            self.driver.find_element(*CANCEL_BUTTON).click()
+            self.driver.find_element(*self.CANCEL_BUTTON).click()
             return False
         else:
-            self.driver.find_element(*OK_BUTTON).click()
+            self.driver.find_element(*self.OK_BUTTON).click()
             return True

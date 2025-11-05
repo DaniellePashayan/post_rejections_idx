@@ -32,13 +32,13 @@ class SettingsPage:
 
     # 2. Methods (Actions the user can take)
     def _open_settings(self):
-        WebDriverWait(self.driver, 10).until(
+        WebDriverWait(self.driver, 3).until(
             EC.presence_of_element_located(self.MENU_BUTTON)
         ).click()
 
     def _open_hog_screen(self):
         self._open_settings()
-        WebDriverWait(self.driver, 10).until(
+        WebDriverWait(self.driver, 3).until(
             EC.presence_of_element_located(self.HOG_SCREEN_LINK)
         ).click()
     
@@ -54,7 +54,7 @@ class SettingsPage:
         group_selector = self.driver.find_element(*self.GROUP_SELECTOR)
         current_selection = group_selector.find_element(*self.CURRENT_SELECTION).text
         if cancel:
-            cancel_button = WebDriverWait(self.driver, 10).until(
+            cancel_button = WebDriverWait(self.driver, 3).until(
                 EC.element_to_be_clickable(self.CANCEL_BTN)
             )   
             

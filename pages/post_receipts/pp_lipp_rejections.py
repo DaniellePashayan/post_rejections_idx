@@ -88,5 +88,5 @@ class PP_LIPP_Rejections:
                     index = int(index) + 1
                     REJECTION_FIELD_LOCATOR = (By.ID, f'{self.REJECTION_FIELD_BASE}{str(index)}')
             elif key.startswith('RejCode') and not value:
-                print(f"No value for {key}")
+                logger.debug(f"No value for {key}")
         time.sleep(1)

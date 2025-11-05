@@ -23,19 +23,20 @@ class PaymentCodesModal:
             WebDriverWait(self.driver, timeout).until(
                 EC.visibility_of_element_located(self.MODAL_LOCATOR)
             )
-            print("Payment Codes modal is open.")
+            logger.debug("Payment Codes modal is open.")
             return True
         except TimeoutException:
-            print("Payment Codes modal did not open within the given time.")
+            logger.debug("Payment Codes modal did not open within the given time.")
             return False
     
     def close_modal(self):
         if self.confirm_modal_open():
             self.driver.find_element(*self.CANCEL_BTN_LOCATOR).click()
             self.driver.implicitly_wait(1)
-            print("Payment Codes modal has been closed.")
+            logger.debug("Payment Codes modal has been closed.")
     
     def get_paycode_options(self):
+        time.sleep(3)
         options = self.driver.find_elements(*self.OPTIONS_ROW_LOCATOR)
         
         option_names = [option for option in options if option.get_attribute('col-id') == 'col1']
@@ -49,7 +50,8 @@ class PaymentCodesModal:
             
             if 'MANUAL' in name.text.upper():
                 available_options.add(code.text)
-        time.sleep(0.5)
+        
+        time.sleep(1)
         self.close_modal()
         available_options = list(available_options)
         
@@ -60,5 +62,8 @@ class PaymentCodesModal:
             
         if len(available_options) > 1:
             logger.warning("Multiple manual payment codes found; ensure the correct one is selected.")
+        elif available_options == []:
+            logger.warning("No available payment codes to select from.")
+            return ""
         else:
             return available_options[0]
