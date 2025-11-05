@@ -31,23 +31,23 @@ class SettingsPage:
         self.driver = driver
 
     # 2. Methods (Actions the user can take)
-    def open_settings(self):
+    def _open_settings(self):
         WebDriverWait(self.driver, 10).until(
             EC.presence_of_element_located(self.MENU_BUTTON)
         ).click()
 
-    def open_hog_screen(self):
-        self.open_settings()
+    def _open_hog_screen(self):
+        self._open_settings()
         WebDriverWait(self.driver, 10).until(
             EC.presence_of_element_located(self.HOG_SCREEN_LINK)
         ).click()
     
-    def get_current_group(self, cancel=False):
+    def _get_current_group(self, cancel=False):
         try:
             WebDriverWait(self.driver, 5).until(
             EC.presence_of_element_located(self.GROUP_SELECTOR))
         except TimeoutException:
-            self.open_hog_screen()
+            self._open_hog_screen()
         
         WebDriverWait(self.driver, 5).until(
             EC.presence_of_element_located(self.GROUP_SELECTOR))
@@ -65,7 +65,7 @@ class SettingsPage:
         if target_group_number not in self.NUMBER_MAP:
             raise ValueError(f"Invalid target group number: {target_group_number}. Must be one of: {list(self.NUMBER_MAP.keys())}")
         
-        current_group = self.get_current_group()
+        current_group = self._get_current_group()
         
         if current_group == target_group_number:
             logger.info(f"Group {current_group} is already selected. No action needed.")
