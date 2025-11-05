@@ -73,10 +73,10 @@ class DBManager:
             )
             return session.exec(statement).all()
     
-    def update_completed_status(self, invoice_number: int):
+    def update_completed_status(self, rejection: Rejections):
         with Session(self.engine) as session:
             statement = update(Rejections).where(
-                Rejections.InvoiceNumber.in_([invoice_number])
+                Rejections.InvoiceNumber.in_([rejection.InvoiceNumber])
             ).values(Completed=1)
             session.exec(statement)
             session.commit()
