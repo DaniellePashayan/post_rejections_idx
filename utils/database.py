@@ -5,6 +5,7 @@ import os
 from loguru import logger
 from typing import List
 
+#TODO: add carrier field
 class Rejections(SQLModel, table=True, extend_existing=True):
     
     model_config = ConfigDict(populate_by_name=True)
@@ -73,6 +74,7 @@ class DBManager:
             )
             return session.exec(statement).all()
     
+    #TODO: make dynamic so we can update any field
     def update_completed_status(self, rejection: Rejections):
         with Session(self.engine) as session:
             statement = update(Rejections).where(

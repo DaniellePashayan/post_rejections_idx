@@ -26,6 +26,7 @@ class PP_LIPP:
     def num_rows_to_process(self) -> int:
         R1_DROPDOWN_LOCATOR = (By.ID, 'r1-button')
         R1_CPT_INDEX_LOCATOR = (By.ID, 'sBf8r1')
+        # TODO: when there is a copay, first row will be 2, not 1
         first_row_dropdown = self.driver.find_element(*R1_DROPDOWN_LOCATOR).text
 
         first_row_cpt_index = self.driver.find_element(*R1_CPT_INDEX_LOCATOR).get_attribute('value')

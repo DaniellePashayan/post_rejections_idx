@@ -17,6 +17,9 @@ import os
 from tqdm import tqdm
 import time
 
+#TODO: add pushbullet notifications
+#TODO: add screenshots on errors
+
 def main():
     load_dotenv()
     
@@ -26,7 +29,8 @@ def main():
     logger.add("logs/debug_{time:YYYY-MM-DD}.log", rotation="5 MB", level="DEBUG")
     logger.add("logs/info_{time:YYYY-MM-DD}.log", rotation="5 MB", level="INFO")
     
-    sample_file = './dev/PIC Templates/11_04_2025.csv'
+    # TODO: change to dynamic file selection
+    sample_file = './dev/PIC Templates/11_06_2025.csv'
     
     db_manager = DBManager()
     
@@ -35,6 +39,8 @@ def main():
   
     options = webdriver.ChromeOptions()
     # options.add_argument('--headless=new')
+    # options.add_argument('--no-sandbox')
+    # options.add_argument('--disable-dev-shm-usage')
   
     driver = webdriver.Chrome(options=options)
     login = LoginPage(driver)
