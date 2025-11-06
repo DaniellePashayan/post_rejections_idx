@@ -43,6 +43,7 @@ class PostDropdown:
             keys_to_send = [Keys.ARROW_UP] * abs(steps)
             
         keys_to_send.append(Keys.ENTER)
+        keys_to_send.append(Keys.TAB)
         
         dropdown_select = self.row_div.find_element(*self.CURRENT_VALUE_LOCATOR)
         dropdown_select.click()
