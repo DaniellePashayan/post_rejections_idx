@@ -64,6 +64,9 @@ class InputFile:
     def write_data_to_database(self):
         rejections_list = [Rejections.model_validate(row.to_dict()) for _, row in self.data.iterrows()]
         
+        # remove any items where the InvoiceNumber is not a 9 digit number
+        rejections_list = [r for r in rejections_list if isinstance(r.InvoiceNumber, int) and 100000000 <= r.InvoiceNumber <= 999999999]
+        
         self.db_manager.add_rejections(rejections_list)
     
     def update_completed_status(self, invoice_number: int):
