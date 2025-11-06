@@ -24,13 +24,23 @@ class PP_LIPP:
         self.driver = driver
     
     def num_rows_to_process(self) -> int:
-        R1_DROPDOWN_LOCATOR = (By.ID, 'r1-button')
-        R1_CPT_INDEX_LOCATOR = (By.ID, 'sBf8r1')
-        # TODO: when there is a copay, first row will be 2, not 1
+        R1_CPT_INDEX_BASE = 'sBf8r'
+        
+        for i in range (1, 10):
+            R1_CPT_INDEX_LOCATOR = (By.ID, R1_CPT_INDEX_BASE + str(i))
+            try:
+                self.driver.find_element(*R1_CPT_INDEX_LOCATOR)
+                break
+            except Exception:
+                continue
+        
+        R1_DROPDOWN_LOCATOR = (By.ID, f'r{i}-button')
         first_row_dropdown = self.driver.find_element(*R1_DROPDOWN_LOCATOR).text
-
         first_row_cpt_index = self.driver.find_element(*R1_CPT_INDEX_LOCATOR).get_attribute('value')
-        return int(first_row_cpt_index) - int(first_row_dropdown) +1
+        
+        min_cpt = int(i)
+        max_cpt = int(first_row_cpt_index) - int(first_row_dropdown) +1
+        return (min_cpt, max_cpt)
     
     def confirm_on_rejection_screen(self):
         active_buttons = self.driver.find_elements(By.CSS_SELECTOR, "button.fe_c_tabs__label.fe_is-selected")

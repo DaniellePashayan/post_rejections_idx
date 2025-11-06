@@ -86,19 +86,23 @@ def main():
             pic_screen.set_line_item_post_checkbox(True)
             
             pp_lipp = PP_LIPP(driver)
-            num_cpts_to_post = pp_lipp.num_rows_to_process()
+            starting_index, num_cpts_to_post = pp_lipp.num_rows_to_process()
             
             # posting the first rejection will pull up the pp_lipp_rejection screen
-            pp_lipp.populate_row(1, rejection)
+            pp_lipp.populate_row(starting_index, rejection)
             
             pp_lipp_rej = PP_LIPP_Rejections(driver, rejection)
             pp_lipp_rej.enter_carrier('UNITED HEALTHCARE')
             pp_lipp_rej.close_screen()
             
-            for cpt_row in range(2, num_cpts_to_post + 1):
-                # start at 2 since the pp_lipp_rejection screen already populated row 1
-                logger.debug(f"Processing CPT row {cpt_row} of {num_cpts_to_post}")
-                pp_lipp.populate_row(cpt_row, rejection)
+            if num_cpts_to_post > 1:
+                if starting_index == num_cpts_to_post:
+                    num_cpts_to_post = num_cpts_to_post + 1
+                
+                for cpt_row in range(starting_index+1, num_cpts_to_post + 1):
+                    # start at 2 since the pp_lipp_rejection screen already populated row 1
+                    logger.debug(f"Processing CPT row {cpt_row} of {num_cpts_to_post}")
+                    pp_lipp.populate_row(cpt_row, rejection)
             posted = pp_lipp.finalize_posting()
             if posted:
                 db_manager.update_completed_status(rejection)
