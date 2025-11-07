@@ -16,6 +16,7 @@ from dotenv import load_dotenv
 import os
 from tqdm import tqdm
 import time
+from datetime import datetime
 
 #TODO: add pushbullet notifications
 #TODO: add screenshots on errors
@@ -23,18 +24,30 @@ import time
 def main():
     load_dotenv()
     
-    # save logs to file
-    os.makedirs("logs", exist_ok=True)
+    # create log folder based on date
+    today = datetime.now()
+    year = today.strftime("%Y")
+    year_month = today.strftime("%Y %m")
+    year_month_day = today.strftime("%Y %m %d")
+    time = today.strftime("%Y-%m-%d %H %M")
+    
+    log_folder_path = os.path.join("logs", year, year_month, year_month_day)
+    os.makedirs(log_folder_path, exist_ok=True)
+    
+    debug_path = os.path.join(log_folder_path, f"debug_{time}.log")
+    info_path = os.path.join(log_folder_path, f"info_{time}.log")
+    
     logger.remove()
-    logger.add("logs/debug_{time:YYYY-MM-DD}.log", rotation="5 MB", level="DEBUG")
-    logger.add("logs/info_{time:YYYY-MM-DD}.log", rotation="5 MB", level="INFO")
+    logger.add(debug_path, rotation="5 MB", level="DEBUG")
+    logger.add(info_path, rotation="5 MB", level="INFO")
     
     # TODO: change to dynamic file selection
-    sample_file = './dev/PIC Templates/11_07_2025.csv'
+    input_file_path = './dev/PIC Templates/11_07_2025.csv'
+    logger.info(f"Using input file: {input_file_path}")
     
     db_manager = DBManager()
     
-    input_file = InputFile(sample_file, db_manager)
+    input_file = InputFile(input_file_path, db_manager)
     input_file.load_data()
   
     options = webdriver.ChromeOptions()
