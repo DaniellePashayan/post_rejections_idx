@@ -30,7 +30,7 @@ def main():
     logger.add("logs/info_{time:YYYY-MM-DD}.log", rotation="5 MB", level="INFO")
     
     # TODO: change to dynamic file selection
-    sample_file = './dev/PIC Templates/11_06_2025.csv'
+    sample_file = './dev/PIC Templates/11_07_2025.csv'
     
     db_manager = DBManager()
     
@@ -79,8 +79,11 @@ def main():
                 paycode = pc_modal.get_paycode_options()
                 if paycode == "":
                     logger.warning(f"No valid paycode found for patient {rejection.InvoiceNumber}, skipping.")
+                    rejection.Comment = "No valid paycode found"
+                    db_manager.update_row(rejection)
                     continue
                 rejection.Paycode = paycode
+                db_manager.update_row(rejection)
 
             pic_screen.enter_paycode(rejection.Paycode)
             pic_screen.set_line_item_post_checkbox(True)
@@ -92,7 +95,8 @@ def main():
             pp_lipp.populate_row(starting_index, rejection)
             
             pp_lipp_rej = PP_LIPP_Rejections(driver, rejection)
-            pp_lipp_rej.enter_carrier('UNITED HEALTHCARE')
+            #TODO: handle carrier mismatch
+            pp_lipp_rej.enter_carrier(rejection.Carrier)
             pp_lipp_rej.close_screen()
             
             if num_cpts_to_post > 1:
@@ -105,7 +109,7 @@ def main():
                     pp_lipp.populate_row(cpt_row, rejection)
             posted = pp_lipp.finalize_posting()
             if posted:
-                db_manager.update_completed_status(rejection)
+                db_manager.update_row(rejection)
         break
             
 

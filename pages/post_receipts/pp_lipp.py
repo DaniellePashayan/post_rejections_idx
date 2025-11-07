@@ -51,8 +51,13 @@ class PP_LIPP:
     
     def populate_row(self, row_number: int, rejection: Rejections):
         rejection_locator = (By.ID, f'{self.REJECTION_FIELD_BASE}{row_number}')
-
-        row_element = self.driver.find_element(By.ID, self.ROW_BASE + str(row_number))
+        try:
+            row_element = self.driver.find_element(By.ID, self.ROW_BASE + str(row_number))
+        except NoSuchElementException:
+            # scroll down to load more rows
+            self.driver.execute_script("arguments[0].scrollIntoView();", 
+                                       self.driver.find_element(By.ID, self.ROW_BASE + str(row_number - 1)))
+            row_element = self.driver.find_element(By.ID, self.ROW_BASE + str(row_number))
         dropdown = PostDropdown(self.driver, row_element)
         dropdown.set_value('R')
 

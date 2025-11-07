@@ -1,6 +1,6 @@
 import pandas as pd
 from loguru import logger
-from utils.database import DBManager, Rejections
+from utils.database import DBManager, Rejections, ALLOWED_CARRIERS
 
 class InputFile:
     def __init__(self, file_path: str, db_manager: DBManager):
@@ -20,6 +20,7 @@ class InputFile:
         data = self.data.copy()
         
         # Remove leading and trailing spaces from column names
+        #! COLUMNS GET RENAMED HERE
         data.columns = data.columns.str.replace(' ', '')
         
         # Replace NaN values with empty strings
@@ -45,7 +46,35 @@ class InputFile:
 
             self.group_data[group_number] = results
             logger.info(f"Filtered data for group {group_number}, {len(results)} records found.")
+    
+    def validate_data(self):
+        # ensure necessary columns exist
+        required_columns = ['InvoiceNumber', 'Carrier', 'Paycode', 'LIPost', 'Group']
+        for col in required_columns:
+            if col not in self.data.columns:
+                logger.error(f"Missing required column: {col}")
+                return False
         
+        for _, row in self.data.iterrows():
+            # if Paycode is 901, ensure LIPost is false
+            if row['Paycode'] == 901 and row['LIPost']:
+                logger.error(f"Paycode is 901 but LIPost is True for InvoiceNumber: {row['InvoiceNumber']}")
+                # change LIPost to false
+                self.data.loc[self.data['InvoiceNumber'] == row['InvoiceNumber'], 'LIPost'] = False
+                
+            # if LIPost is true, ensure Carrier value is not empty
+            if row['LIPost'] and not row['Carrier']:
+                logger.error(f"LIPost is True but Carrier is empty for InvoiceNumber: {row['InvoiceNumber']}")
+                # remove this row from data
+                self.data = self.data[self.data['InvoiceNumber'] != row['InvoiceNumber']]
+        
+            if row['Carrier']:
+                if row['Carrier'] not in ALLOWED_CARRIERS:
+                    logger.error(f"Invalid Carrier value: {row['Carrier']} for InvoiceNumber: {row['InvoiceNumber']}")
+                    # remove this row from data
+                    self.data = self.data[self.data['InvoiceNumber'] != row['InvoiceNumber']]
+        return True
+    
     def load_data(self):
         try:
             self.data = pd.read_csv(self.file_path)
@@ -55,6 +84,7 @@ class InputFile:
             
             # drop any columns that have the name "COlumn" in the name
             self.data = self.data.loc[:, ~self.data.columns.str.contains('^Column', case=False)]
+            self.validate_data()
             
             self.filter_by_group()
 
@@ -69,5 +99,5 @@ class InputFile:
         
         self.db_manager.add_rejections(rejections_list)
     
-    def update_completed_status(self, invoice_number: int):
-        self.db_manager.update_completed_status(invoice_number)
+    def update_row(self, rejection: Rejections):
+        self.db_manager.update_row(rejection)

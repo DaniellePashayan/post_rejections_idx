@@ -1,16 +1,40 @@
-from sqlmodel import create_engine, SQLModel, Field, Session, select, update
+from sqlmodel import create_engine, SQLModel, Field, Session, select, update, Column
+from sqlalchemy import CheckConstraint
 from typing import Optional
-from pydantic import ConfigDict
+from pydantic import ConfigDict, field_validator
 import os
 from loguru import logger
 from typing import List
 
-#TODO: add carrier field
+# create validation to ensure "carrier" field matches existing carriers in the system
+ALLOWED_CARRIERS = [
+    "AARP", "AETNA", "AFFINITY", "ALICARE", "AMERICHOICE", "AMERIGROUP",
+    "AMERIHEALTH", "ATLANTIS", "BEECH STREET", "BLUE CROSS BLUE SHIELD",
+    "CARECONNECT", "CHOICE CARE", "CIGNA", "CONNECTICARE", "COVENTRY", "DEVON",
+    "EASY CHOICE", "ELDERPLAN", "FIDELIS", "FIRST HEALTH", "FIRST UNITED",
+    "GENERIC", "GHI", "GUARDIAN", "HEALTHCARE PARTNERS", "HEALTHFIRST",
+    "HEALTHNET", "HEALTHPLUS", "HIP", "HORIZON", "HUMANA", "LIBERTY",
+    "LOCAL 1199", "LOCAL 3", "MAGELLAN", "MAGNACARE", "MANAGED CARE", "MEDICAID",
+    "MEDICARE", "MERITAIN", "METROPLUS", "MULTIPLAN", "NATL PREFFERED PROV NETWORK",
+    "NEIGHBORHOOD", "NO FAULT", "OXFORD", "PHCS", "PHS", "SELF PAY", "TOUCHSTONE",
+    "TRICARE", "UNION", "UNITED HEALTHCARE", "UNITED HEALTHCARE EMPIRE", "VYTRA",
+    "WELLCARE", "WORKERS COMP"
+]
+
 class Rejections(SQLModel, table=True, extend_existing=True):
+    __table_args__ = (
+        CheckConstraint(
+            # For now, keep it minimal or update to the full list
+            "Carrier IN ('AARP','AETNA','AFFINITY','ALICARE','AMERICHOICE','AMERIGROUP','AMERIHEALTH','ATLANTIS','BEECH STREET','BLUE CROSS BLUE SHIELD','CARECONNECT','CHOICE CARE','CIGNA','CONNECTICARE','COVENTRY','DEVON','EASY CHOICE','ELDERPLAN','FIDELIS','FIRST HEALTH','FIRST UNITED','GENERIC','GHI','GUARDIAN','HEALTHCARE PARTNERS','HEALTHFIRST','HEALTHNET','HEALTHPLUS','HIP','HORIZON','HUMANA','LIBERTY','LOCAL 1199','LOCAL 3','MAGELLAN','MAGNACARE','MANAGED CARE','MEDICAID','MEDICARE','MERITAIN','METROPLUS','MULTIPLAN','NATL PREFFERED PROV NETWORK','NEIGHBORHOOD','NO FAULT','OXFORD','PHCS','PHS','SELF PAY','TOUCHSTONE','TRICARE','UNION','UNITED HEALTHCARE','UNITED HEALTHCARE EMPIRE','VYTRA','WELLCARE','WORKERS COMP')",
+            name="carrier_allowed_values",
+        ),
+    )
     
     model_config = ConfigDict(populate_by_name=True)
     
     InvoiceNumber: int = Field(primary_key=True, index=True, alias="Invoice Number")
+    Carrier: str = Field(alias="Carrier")
+    LineItemPost: bool = Field(alias="LI Post")
     Paycode: Optional[str] = Field(default=None, alias="Paycode")
     
     RejCode1: str = Field(alias="Rej Code 1")
@@ -26,7 +50,13 @@ class Rejections(SQLModel, table=True, extend_existing=True):
     Group: int = Field(index=True)
     FileName: str = Field(primary_key=True, index=True)
     Completed: bool = Field(default=False, index=True)
+    Comment: Optional[str] = Field(default=None)
 
+    @field_validator("Carrier")
+    def validate_carrier(cls, v: str) -> str:
+        if v not in ALLOWED_CARRIERS:
+            raise ValueError(f"Carrier must be one of {ALLOWED_CARRIERS}")
+        return v
 
 class DBManager:
     URL = f'sqlite:///{os.path.join(os.getcwd(), "rejections.db")}'
@@ -70,18 +100,41 @@ class DBManager:
             statement = select(Rejections).where(
                 Rejections.FileName == file_name,
                 Rejections.Completed == 0,
-                Rejections.Group == group
+                Rejections.Group == group,
+                Rejections.Comment == None
             )
             return session.exec(statement).all()
     
     #TODO: make dynamic so we can update any field
-    def update_completed_status(self, rejection: Rejections):
+    def update_row(self, rejection: Rejections):
+        updates = rejection.model_dump(
+            exclude_unset=True, 
+            exclude_none=True, 
+            by_alias=False      
+        )
+        
+        # Don't update primary keys
+        updates.pop("InvoiceNumber", None)
+        updates.pop("FileName", None)
+        
+        valid_cols = {c.name for c in Rejections.__table__.columns}
+        updates = {k: v for k, v in updates.items() if k in valid_cols}
+        
+        if not updates:
+            return 0
+        
         with Session(self.engine) as session:
-            statement = update(Rejections).where(
-                Rejections.InvoiceNumber.in_([rejection.InvoiceNumber])
-            ).values(Completed=1)
-            session.exec(statement)
+            stmt = (
+                update(Rejections)
+                .where(
+                    Rejections.InvoiceNumber == rejection.InvoiceNumber,
+                    Rejections.FileName == rejection.FileName,
+                )
+                .values(**updates)
+            )
+            result = session.exec(stmt)
             session.commit()
+            return result.rowcount or 0
         
 
 if __name__ == "__main__":
