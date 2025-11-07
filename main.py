@@ -108,7 +108,6 @@ def main():
             pp_lipp.populate_row(starting_index, rejection)
             
             pp_lipp_rej = PP_LIPP_Rejections(driver, rejection)
-            #TODO: handle carrier mismatch
             pp_lipp_rej.enter_carrier(rejection.Carrier)
             pp_lipp_rej.close_screen()
             
