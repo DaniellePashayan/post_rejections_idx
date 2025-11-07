@@ -105,7 +105,6 @@ class DBManager:
             )
             return session.exec(statement).all()
     
-    #TODO: make dynamic so we can update any field
     def update_row(self, rejection: Rejections):
         updates = rejection.model_dump(
             exclude_unset=True, 
