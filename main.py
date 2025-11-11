@@ -15,7 +15,7 @@ from loguru import logger
 from dotenv import load_dotenv
 import os
 from tqdm import tqdm
-import time
+import time as t
 from datetime import datetime
 
 #TODO: add pushbullet notifications
@@ -77,7 +77,7 @@ def main():
             vtb.select_vtb_option("Payment Posting")
         
         pp_batch.open_batch()
-        time.sleep(2)
+        t.sleep(2)
         
         for rejection in tqdm(group_data, total=len(group_data), desc=f"Processing {group}"):
             logger.info(f"Processing patient: {rejection.InvoiceNumber}")
@@ -102,7 +102,7 @@ def main():
             pic_screen.set_line_item_post_checkbox(True)
             
             pp_lipp = PP_LIPP(driver)
-            starting_index, num_cpts_to_post = pp_lipp.num_rows_to_process()
+            starting_index, num_cpts_to_post = pp_lipp.num_rows_to_process() # type: ignore
             
             # posting the first rejection will pull up the pp_lipp_rejection screen
             pp_lipp.populate_row(starting_index, rejection)

@@ -53,7 +53,7 @@ class PICScreen_Main:
         except TimeoutException:
             return False
     
-    def _confirm_field_populated(self, locator: tuple, expected_value:str=None):
+    def _confirm_field_populated(self, locator: tuple, expected_value:str|None=None):
         field = WebDriverWait(self.driver, 10).until(
             EC.presence_of_element_located(locator)
         )
@@ -103,11 +103,16 @@ class PICScreen_Main:
             if check_if_checkbox_selected(li_post_checkbox):
                 toggle_checkbox(li_post_checkbox)
     
-    def enter_paycode(self, paycode:str = None): 
+    def enter_paycode(self, paycode:str| None = None): 
         if not paycode:
             self.driver.find_element(*self.CODE_MAGNIFY_ICON).click()
             payment_codes_modal = PaymentCodesModal(self.driver)
-            paycode = payment_codes_modal.get_paycode_options()[0]
+            paycode_options = payment_codes_modal.get_paycode_options()
+            if paycode_options:
+                paycode = paycode_options[0]
+            else:
+                logger.error("No paycode options available")
+                return
         
         time.sleep(0.5)
         

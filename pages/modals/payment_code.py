@@ -35,7 +35,7 @@ class PaymentCodesModal:
             self.driver.implicitly_wait(1)
             logger.debug("Payment Codes modal has been closed.")
     
-    def get_paycode_options(self):
+    def get_paycode_options(self) -> str | None:
         time.sleep(3)
         options = self.driver.find_elements(*self.OPTIONS_ROW_LOCATOR)
         

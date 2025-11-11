@@ -2,10 +2,11 @@ from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
-from selenium.common.exceptions import TimeoutException
+from selenium.common.exceptions import TimeoutException, NoSuchElementException
 from selenium.webdriver.common.keys import Keys
 import time
 from loguru import logger
+from typing import Tuple
 
 from utils.database import Rejections
 from pages.post_receipts.post_dropdown import PostDropdown
@@ -23,25 +24,28 @@ class PP_LIPP:
     def __init__(self, driver):
         self.driver = driver
     
-    def num_rows_to_process(self) -> int:
+    def num_rows_to_process(self) -> Tuple[int, int] | None:
         R1_CPT_INDEX_BASE = 'sBf8r'
-        
+        index=0
+        R1_DROPDOWN_LOCATOR = None
+        R1_CPT_INDEX_LOCATOR = None
         for i in range (1, 10):
             R1_CPT_INDEX_LOCATOR = (By.ID, R1_CPT_INDEX_BASE + str(i))
             try:
                 self.driver.find_element(*R1_CPT_INDEX_LOCATOR)
+                index=i
                 break
             except Exception:
                 continue
+        if index > 1 and R1_DROPDOWN_LOCATOR and R1_CPT_INDEX_LOCATOR:
+            R1_DROPDOWN_LOCATOR = (By.ID, f'r{index}-button')
+            first_row_dropdown = self.driver.find_element(*R1_DROPDOWN_LOCATOR).text
+            first_row_cpt_index = self.driver.find_element(*R1_CPT_INDEX_LOCATOR).get_attribute('value')
+            
+            min_cpt = int(index)
+            max_cpt = int(first_row_cpt_index) - int(first_row_dropdown) +1
+            return (min_cpt, max_cpt)
         
-        R1_DROPDOWN_LOCATOR = (By.ID, f'r{i}-button')
-        first_row_dropdown = self.driver.find_element(*R1_DROPDOWN_LOCATOR).text
-        first_row_cpt_index = self.driver.find_element(*R1_CPT_INDEX_LOCATOR).get_attribute('value')
-        
-        min_cpt = int(i)
-        max_cpt = int(first_row_cpt_index) - int(first_row_dropdown) +1
-        return (min_cpt, max_cpt)
-    
     def confirm_on_rejection_screen(self):
         active_buttons = self.driver.find_elements(By.CSS_SELECTOR, "button.fe_c_tabs__label.fe_is-selected")
         for btn in active_buttons:
