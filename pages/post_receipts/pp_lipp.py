@@ -37,14 +37,14 @@ class PP_LIPP:
                 break
             except Exception:
                 continue
-        if index > 1 and R1_DROPDOWN_LOCATOR and R1_CPT_INDEX_LOCATOR:
-            R1_DROPDOWN_LOCATOR = (By.ID, f'r{index}-button')
-            first_row_dropdown = self.driver.find_element(*R1_DROPDOWN_LOCATOR).text
-            first_row_cpt_index = self.driver.find_element(*R1_CPT_INDEX_LOCATOR).get_attribute('value')
+        
+        R1_DROPDOWN_LOCATOR = (By.ID, f'r{index}-button')
+        first_row_dropdown = self.driver.find_element(*R1_DROPDOWN_LOCATOR).text
+        first_row_cpt_index = self.driver.find_element(*R1_CPT_INDEX_LOCATOR).get_attribute('value') # type: ignore
             
-            min_cpt = int(index)
-            max_cpt = int(first_row_cpt_index) - int(first_row_dropdown) +1
-            return (min_cpt, max_cpt)
+        min_cpt = int(index)
+        max_cpt = int(first_row_cpt_index) - int(first_row_dropdown) +1
+        return (min_cpt, max_cpt)
         
     def confirm_on_rejection_screen(self):
         active_buttons = self.driver.find_elements(By.CSS_SELECTOR, "button.fe_c_tabs__label.fe_is-selected")

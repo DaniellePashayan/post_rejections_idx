@@ -42,7 +42,7 @@ def main():
     logger.add(info_path, rotation="5 MB", level="INFO")
     
     # TODO: change to dynamic file selection
-    input_file_path = './dev/PIC Templates/11_07_2025.csv'
+    input_file_path = './dev/PIC Templates/11_10_2025.csv'
     logger.info(f"Using input file: {input_file_path}")
     
     db_manager = DBManager()
