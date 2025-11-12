@@ -32,6 +32,7 @@ class PP_SelectPatient:
             return False
     
     def reset_patient(self):
+        time.sleep(0.5)
         invoice_field = WebDriverWait(self.driver, 3).until(
             EC.presence_of_element_located(self.INVOICE_LOCATOR)
         )
