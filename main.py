@@ -47,11 +47,13 @@ def main():
     
     # TODO: change to dynamic file selection
     input_file_path = '//NT2KWB972SRV03/SHAREDATA/CPP-Data/CBO Westbury Managers/LEADERSHIP/Bot Folder/ORCCA Rejection Scripting'
-    file_name = '*11_11_2025*.csv'
+    file_name = f'*{file_date_format}*.csv'
     files_to_process = glob(f'{input_file_path}/{file_name}')
+    logger.debug(f"Files to process: {files_to_process}")
+    
     for file in files_to_process:
-        logger.info(f"Using input file: {input_file_path}")
-        
+        logger.info(f"Using input file: {file}")
+
         db_manager = DBManager()
         
         input_file = InputFile(file, db_manager)
