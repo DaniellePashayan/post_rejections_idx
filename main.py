@@ -45,7 +45,6 @@ def main():
     logger.add(debug_path, rotation="5 MB", level="DEBUG")
     logger.add(info_path, rotation="5 MB", level="INFO")
     
-    # TODO: change to dynamic file selection
     input_file_path = '//NT2KWB972SRV03/SHAREDATA/CPP-Data/CBO Westbury Managers/LEADERSHIP/Bot Folder/ORCCA Rejection Scripting'
     file_name = f'*{file_date_format}*.csv'
     files_to_process = glob(f'{input_file_path}/{file_name}')
