@@ -1,7 +1,7 @@
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
-from selenium.common.exceptions import TimeoutException
+from selenium.common.exceptions import TimeoutException, ElementClickInterceptedException
 from selenium.webdriver.common.keys import Keys
 import time
 from loguru import logger
@@ -21,6 +21,34 @@ class PaymentPostingBatch:
     
     def __init__(self, driver):
         self.driver = driver
+
+    def _safe_click(self, locator, retries: int = 3, scroll: bool = True):
+        """Attempt to click an element, handling transient overlays that intercept clicks.
+
+        Falls back to JavaScript click if Selenium's native click keeps getting intercepted.
+        """
+        for attempt in range(1, retries + 1):
+            try:
+                element = WebDriverWait(self.driver, 10).until(EC.element_to_be_clickable(locator))
+                if scroll:
+                    self.driver.execute_script("arguments[0].scrollIntoView({block: 'center'});", element)
+                element.click()
+                return True
+            except ElementClickInterceptedException as e:
+                logger.debug(f"Click intercepted on attempt {attempt} for locator {locator}: {e}. Retrying...")
+                time.sleep(0.5)
+            except TimeoutException:
+                logger.warning(f"Timed out waiting for element to be clickable: {locator}")
+                return False
+        # JS fallback
+        try:
+            element = self.driver.find_element(*locator)
+            self.driver.execute_script("arguments[0].click();", element)
+            logger.debug(f"Used JS click fallback for locator {locator}")
+            return True
+        except Exception as e:
+            logger.error(f"Failed to click element (including JS fallback) for locator {locator}: {e}")
+            return False
     
     def in_batch_page(self):
         try:
@@ -131,10 +159,13 @@ class PaymentPostingBatch:
             curr_field.send_keys("O" + Keys.TAB)
             time.sleep(0.5)
         else:
-            self.driver.find_element(*self.ACTIONS_FIELD).click()
+            # Existing batch open; ensure actions field is safely clickable.
+            if not self._safe_click(self.ACTIONS_FIELD):
+                logger.error("Could not focus Actions field due to persistent interception.")
+                return False
         
         if self._check_batch_fields():
-            WebDriverWait(self.driver, 10).until(
-                EC.element_to_be_clickable(self.OK_BUTTON)
-            )
-            self.driver.find_element(*self.OK_BUTTON).click()
+            if not self._safe_click(self.OK_BUTTON):
+                logger.error("Failed to click OK button after filling batch fields.")
+                return False
+        return True

@@ -34,7 +34,7 @@ class Rejections(SQLModel, table=True, extend_existing=True):
     
     InvoiceNumber: int = Field(primary_key=True, index=True, alias="Invoice Number")
     Carrier: str = Field(alias="Carrier")
-    LineItemPost: bool = Field(alias="LI Post")
+    LineItemPost: bool = Field(alias="LineItemPost")
     Paycode: Optional[str] = Field(default=None, alias="Paycode")
     
     RejCode1: str = Field(alias="Rej Code 1")
@@ -57,6 +57,26 @@ class Rejections(SQLModel, table=True, extend_existing=True):
         if v not in ALLOWED_CARRIERS:
             raise ValueError(f"Carrier must be one of {ALLOWED_CARRIERS}")
         return v
+
+    # Accept 0/1 (and "0"/"1") values and coerce to proper booleans to
+    # avoid Pydantic v2 serializer warnings when models are dumped/updated.
+    @field_validator("Completed", mode="before")
+    def coerce_completed(cls, v):  # type: ignore[no-untyped-def]
+        # Already a boolean
+        if isinstance(v, bool):
+            return v
+        # Integers 0/1
+        if isinstance(v, int):
+            return bool(v)
+        # Strings like "0", "1", "true", "false"
+        if isinstance(v, str):
+            normalized = v.strip().lower()
+            if normalized in {"0", "false", "no", ""}:
+                return False
+            if normalized in {"1", "true", "yes"}:
+                return True
+        # Fallback to Python truthiness
+        return bool(v)
 
 class DBManager:
     URL = f'sqlite:///{os.path.join(os.getcwd(), "rejections.db")}'

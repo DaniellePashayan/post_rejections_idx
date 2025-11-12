@@ -24,7 +24,7 @@ class PICScreen_Main:
     def get_current_batch_group(self):
         try:
             time.sleep(1)
-            header = WebDriverWait(self.driver, 5).until(
+            header = WebDriverWait(self.driver, 3).until(
                 EC.presence_of_element_located(self.HEADER)
             )
             header_text = header.text

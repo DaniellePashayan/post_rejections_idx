@@ -32,21 +32,22 @@ class PP_SelectPatient:
             return False
     
     def reset_patient(self):
-        patient_field = self.driver.find_element(*self.PATIENT_LOCATOR)
-        patient_field_value = patient_field.get_attribute("value")
-        if not patient_field_value:
-            logger.debug("Patient field already empty, no reset needed.")
+        invoice_field = WebDriverWait(self.driver, 3).until(
+            EC.presence_of_element_located(self.INVOICE_LOCATOR)
+        )
+        invoice_field_value = invoice_field.get_attribute("value")
+        if not invoice_field_value:
+            logger.debug("Invoice field already empty, no reset needed.")
             return
         
+        WebDriverWait(self.driver, 5).until(EC.presence_of_element_located(self.ACTIONS_BUTTON))
         self.driver.find_element(*self.ACTIONS_BUTTON).click()
 
-        WebDriverWait(self.driver, 10).until(EC.presence_of_element_located(self.ACTIONS_CODE_LIST))
+        WebDriverWait(self.driver, 5).until(EC.presence_of_element_located(self.ACTIONS_CODE_LIST))
         self.driver.find_element(*self.RESET_BUTTON).click()
+        
         logger.debug("Patient field reset via Actions -> Reset.")
-        patient_field = self.driver.find_element(*self.PATIENT_LOCATOR)
-        patient_field_value = patient_field.get_attribute("value")
-        if patient_field_value:
-            patient_field.clear()
+
     
     def select_patient(self, invoice_number:str):  
         # if field is an int, convert to str
@@ -58,27 +59,36 @@ class PP_SelectPatient:
         )
         time.sleep(0.5)
             
+        if self._confirm_field_populated(self.INVOICE_LOCATOR, ''):
+            logger.debug("Patient successfully reset.")
+            time.sleep(0.5)
+            
         patient_field = self.driver.find_element(*self.PATIENT_LOCATOR)
-        patient_field.clear()
-        if self._confirm_field_populated(self.PATIENT_LOCATOR, ''):
-            logger.debug("Patient field cleared successfully.")
-            time.sleep(0.5)
-            patient_field.send_keys("-" + invoice_number)
-            time.sleep(0.5)
-            patient_field.send_keys(Keys.TAB)
-        
+        patient_field.send_keys("-" + invoice_number)
+        time.sleep(0.5)
+        patient_field.send_keys(Keys.TAB)
+
+        time.sleep(0.5)
         self.check_for_deceased_modal()
             
         if not self._confirm_field_populated(self.INVOICE_LOCATOR, invoice_number):
-            logger.error("Invoice number field not populated after entry.")
+            logger.error("Invoice number field not populated after entry, retrying")
             time.sleep(0.5)
+            patient_field.click()
+            patient_field.clear()
+            time.sleep(1)
+            patient_field.send_keys("-" + invoice_number)
+            time.sleep(1)
+            patient_field.send_keys(Keys.TAB)
+            
     
     def check_for_deceased_modal(self):
         try:
-            WebDriverWait(self.driver, 3).until(
+            modal = WebDriverWait(self.driver, 3).until(
                 EC.presence_of_element_located(self.DECEASED_MODAL_INDICATOR)
             )
-            self.driver.find_element(*self.MODAL_CLOSE).click()
-            logger.info("Modal detected and closed.")
+            if "Deceased" in modal.text:
+                self.driver.find_element(*self.MODAL_CLOSE).click()
+                logger.info("Modal detected and closed.")
         except TimeoutException:
             logger.debug("No modal detected.")

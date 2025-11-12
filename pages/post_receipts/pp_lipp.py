@@ -32,7 +32,7 @@ class PP_LIPP:
         for i in range (1, 10):
             R1_CPT_INDEX_LOCATOR = (By.ID, R1_CPT_INDEX_BASE + str(i))
             try:
-                self.driver.find_element(*R1_CPT_INDEX_LOCATOR)
+                WebDriverWait(self.driver, 5).until(EC.presence_of_element_located(R1_CPT_INDEX_LOCATOR))
                 index=i
                 break
             except Exception:

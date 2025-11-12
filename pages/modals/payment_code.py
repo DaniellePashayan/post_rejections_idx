@@ -36,7 +36,7 @@ class PaymentCodesModal:
             logger.debug("Payment Codes modal has been closed.")
     
     def get_paycode_options(self) -> str | None:
-        time.sleep(3)
+        time.sleep(2)
         options = self.driver.find_elements(*self.OPTIONS_ROW_LOCATOR)
         
         option_names = [option for option in options if option.get_attribute('col-id') == 'col1']

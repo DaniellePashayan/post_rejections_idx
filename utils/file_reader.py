@@ -7,10 +7,10 @@ class InputFile:
         self.file_path = file_path
         self.db_manager = db_manager
         self.group_data = {
-            3: {},
-            4: {},
-            5: {},
-            6: {},
+            3: [],
+            4: [],
+            5: [],
+            6: [],
         }
     
         self.load_data()
@@ -25,6 +25,7 @@ class InputFile:
         
         # Replace NaN values with empty strings
         data = data.where(pd.notnull(data), '')
+        data['Paycode'] = data['Paycode'].astype(str)
         
         # convert Completed column to boolean
         if 'Completed' in data.columns:
@@ -61,7 +62,6 @@ class InputFile:
                 logger.error(f"Paycode is 901 but LIPost is True for InvoiceNumber: {row['InvoiceNumber']}")
                 # change LIPost to false
                 self.data.loc[self.data['InvoiceNumber'] == row['InvoiceNumber'], 'LIPost'] = False
-                
             # if LIPost is true, ensure Carrier value is not empty
             if row['LIPost'] and not row['Carrier']:
                 logger.error(f"LIPost is True but Carrier is empty for InvoiceNumber: {row['InvoiceNumber']}")
