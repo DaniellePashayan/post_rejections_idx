@@ -58,10 +58,37 @@ class PP_LIPP:
         try:
             row_element = self.driver.find_element(By.ID, self.ROW_BASE + str(row_number))
         except NoSuchElementException:
-            # scroll down to load more rows
-            self.driver.execute_script("arguments[0].scrollIntoView();", 
-                                       self.driver.find_element(By.ID, self.ROW_BASE + str(row_number - 1)))
-            row_element = self.driver.find_element(By.ID, self.ROW_BASE + str(row_number))
+            # Try to scroll to make the row visible
+            try:
+                # First try scrolling to the previous row
+                previous_row_id = self.ROW_BASE + str(row_number - 1)
+                previous_element = self.driver.find_element(By.ID, previous_row_id)
+                self.driver.execute_script("arguments[0].scrollIntoView({block: 'center'});", previous_element)
+                time.sleep(0.5)  # Give time for any dynamic loading
+                
+                # Now try to find the target row
+                row_element = self.driver.find_element(By.ID, self.ROW_BASE + str(row_number))
+                
+            except NoSuchElementException:
+                # If previous row doesn't exist, try scrolling to bottom of page
+                logger.warning(f"Previous row {row_number - 1} not found, scrolling to bottom")
+                self.driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
+                time.sleep(1)
+                
+                try:
+                    row_element = self.driver.find_element(By.ID, self.ROW_BASE + str(row_number))
+                except NoSuchElementException:
+                    logger.error(f"Row {row_number} not found even after scrolling. Available rows may be limited.")
+                    raise NoSuchElementException(f"Unable to locate row {row_number} after multiple scroll attempts")
+            
+            except Exception as e:
+                logger.error(f"Error during scroll operation for row {row_number}: {e}")
+                # Final attempt without scrolling
+                try:
+                    row_element = self.driver.find_element(By.ID, self.ROW_BASE + str(row_number))
+                except NoSuchElementException:
+                    logger.error(f"Final attempt to find row {row_number} failed")
+                    raise
         dropdown = PostDropdown(self.driver, row_element)
         dropdown.set_value('R')
 
