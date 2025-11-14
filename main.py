@@ -8,8 +8,9 @@ from pages.post_receipts.pp_lipp import PP_LIPP
 from pages.post_receipts.pp_lipp_rejections import PP_LIPP_Rejections
 from pages.pp_batch import PaymentPostingBatch
 from pages.pp_select_patient import PP_SelectPatient
-from utils.file_reader import InputFile
 from utils.database import DBManager
+from utils.file_reader import InputFile
+from utils.notify import send_error_notification
 
 from selenium import webdriver
 from loguru import logger
@@ -21,7 +22,6 @@ from datetime import datetime
 from glob import glob
 import shutil
 
-#TODO: add pushbullet notifications
 #TODO: add screenshots on errors
 
 def main():
@@ -49,7 +49,11 @@ def main():
     file_name = f'*{file_date_format}*.csv'
     files_to_process = glob(f'{input_file_path}/{file_name}')
     logger.debug(f"Files to process: {files_to_process}")
-    
+
+    if files_to_process == []:
+        send_error_notification("No files to process.")
+        return
+
     for file in files_to_process:
         logger.info(f"Using input file: {file}")
 
@@ -146,4 +150,7 @@ def main():
         shutil.move(file, os.path.join(archive_dir, os.path.basename(file)))
 
 if __name__ == "__main__":
-    main()
+    try:
+        main()
+    except Exception as e:
+        send_error_notification(str(e))
