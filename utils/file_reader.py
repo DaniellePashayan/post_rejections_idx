@@ -84,6 +84,7 @@ class InputFile:
             
             # drop any columns that have the name "COlumn" in the name
             self.data = self.data.loc[:, ~self.data.columns.str.contains('^Column', case=False)]
+            self.data['Carrier'] = self.data['Carrier'].str.upper()
             self.validate_data()
             
             self.filter_by_group()
