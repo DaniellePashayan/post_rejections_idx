@@ -19,5 +19,6 @@ dependencies = [
 
 [dependency-groups]
 dev = [
+    "autoflake>=2.3.1",
     "ipykernel>=7.1.0",
 ]
