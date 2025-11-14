@@ -59,13 +59,15 @@ def main():
         input_file.load_data()
     
         options = webdriver.ChromeOptions()
-        # options.add_argument('--headless=new')
-        # options.add_argument('--no-sandbox')
-        # options.add_argument('--disable-dev-shm-usage')
+        options.add_argument("--force-device-scale-factor=0.75")
+        options.add_argument('--headless=new')
+        options.add_argument('--no-sandbox')
+        options.add_argument('--disable-dev-shm-usage')
     
         driver = webdriver.Chrome(options=options)
         login = LoginPage(driver)
         login.navigate_to_login()
+        #TODO: check for locked account/ invalid password
         login.login(os.getenv("IDX_USERNAME"), os.getenv("IDX_PASSWORD"))
         
         settings_page = SettingsPage(driver)
