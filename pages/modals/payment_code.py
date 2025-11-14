@@ -44,7 +44,7 @@ class PaymentCodesModal:
 
         available_options = set()
         for name, code in zip(option_names, option_codes):
-            remove_filter = ['REJECTION', 'CREDITS', 'UNIDENTIFIED', 'EOB']
+            remove_filter = ['REJECTION', 'MEDICARE', 'CREDITS', 'UNIDENTIFIED', 'EOB']
             if any(x in name.text.upper() for x in remove_filter):
                 continue
             
