@@ -1,6 +1,5 @@
 """Screenshot utility for error debugging"""
 
-import os
 from datetime import datetime
 from pathlib import Path
 from typing import Optional
@@ -29,29 +28,50 @@ class ScreenshotManager:
         Returns:
             Path to the saved screenshot file
         """
-        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S_%f")[:-3]  # Include milliseconds
-        
-        # Create descriptive filename
-        context_part = error_context.replace(" ", "_").replace("/", "-")[:50] if error_context else "error"
-        filename = f"error_{timestamp}_{context_part}.png"
-        filepath = self.screenshots_dir / filename
-        
         try:
+            # Check if driver is available
+            if not self.driver:
+                logger.error("No driver available for screenshot capture")
+                return ""
+                
+            # Ensure screenshots directory exists
+            self.screenshots_dir.mkdir(parents=True, exist_ok=True)
+            
+            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S_%f")[:-3]  # Include milliseconds
+            
+            # Create descriptive filename (sanitize for filesystem)
+            context_part = error_context.replace(" ", "_").replace("/", "-").replace("\\", "-")[:50] if error_context else "error"
+            # Remove any other problematic characters
+            context_part = "".join(c for c in context_part if c.isalnum() or c in "_-")
+            filename = f"error_{timestamp}_{context_part}.png"
+            filepath = self.screenshots_dir / filename
+            
+            # Debug info
+            logger.debug(f"Attempting to save screenshot to: {filepath}")
+            logger.debug(f"Screenshots directory exists: {self.screenshots_dir.exists()}")
+            logger.debug(f"Current page title: {self.driver.title}")
+            
             # Capture screenshot
-            self.driver.save_screenshot(str(filepath))
+            success = self.driver.save_screenshot(str(filepath))
             
-            # Log the screenshot with context
-            log_msg = f"Screenshot captured: {filename}"
-            if error_context:
-                log_msg += f" | Context: {error_context}"
-            if exception:
-                log_msg += f" | Exception: {type(exception).__name__}: {str(exception)}"
-            
-            logger.debug(log_msg)
-            return str(filepath)
-            
+            if success and filepath.exists():
+                # Log the screenshot with context
+                log_msg = f"Screenshot captured successfully: {filename}"
+                if error_context:
+                    log_msg += f" | Context: {error_context}"
+                if exception:
+                    log_msg += f" | Exception: {type(exception).__name__}: {str(exception)}"
+                
+                logger.info(log_msg)  # Changed to INFO so it's more visible
+                return str(filepath)
+            else:
+                logger.error(f"Screenshot save returned: {success}, file exists: {filepath.exists() if filepath else 'N/A'}")
+                return ""
+                
         except Exception as screenshot_error:
-            logger.error(f"Failed to capture screenshot: {screenshot_error}")
+            logger.error(f"Failed to capture screenshot: {type(screenshot_error).__name__}: {screenshot_error}")
+            logger.error(f"Screenshots directory: {self.screenshots_dir}")
+            logger.error(f"Driver current_url: {getattr(self.driver, 'current_url', 'N/A')}")
             return ""
     
     def capture_page_source(self, error_context: str = "") -> str:
@@ -74,7 +94,6 @@ class ScreenshotManager:
         except Exception as e:
             logger.error(f"Failed to save page source: {e}")
             return ""
-
 
 def screenshot_on_error(screenshot_manager: ScreenshotManager, context: str = ""):
     """
