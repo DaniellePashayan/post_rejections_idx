@@ -22,8 +22,6 @@ from datetime import datetime
 from glob import glob
 import shutil
 
-#TODO: add screenshots on errors
-
 def main():
     load_dotenv()
     
@@ -67,6 +65,7 @@ def main():
     
         options = webdriver.ChromeOptions()
         options.add_argument("--force-device-scale-factor=0.75")
+        options.add_argument("--start-maximized")
         if os.getenv("ENVIRONMENT").lower() == "production":
             options.add_argument('--headless=new')
             options.add_argument('--no-sandbox')
@@ -79,7 +78,6 @@ def main():
         
         login = LoginPage(driver, screenshot_manager)
         login.navigate_to_login()
-        #TODO: check for locked account/ invalid password
         login.login(os.getenv("IDX_USERNAME"), os.getenv("IDX_PASSWORD"))
         
         settings_page = SettingsPage(driver)
@@ -168,6 +166,8 @@ def main():
                         logger.error(f"Failed to recover after error: {recovery_error}")
                         screenshot_manager.capture_error_screenshot("Recovery attempt failed", recovery_error)
                         break  # Exit the loop if we can't recover
+        
+        settings_page.logout()
         driver.quit()
         # move file to archive
         archive_dir = os.path.join(input_file_path, "ARCHIVE")

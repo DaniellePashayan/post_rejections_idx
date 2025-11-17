@@ -13,3 +13,4 @@ wheels/
 /dev
 /logs
 *.db
+/quick_queries.sqlite3-query

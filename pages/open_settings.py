@@ -1,10 +1,8 @@
-from selenium import webdriver
 from selenium.webdriver.common.by import By
-from selenium.webdriver.chrome.service import Service
-from selenium.webdriver.chrome.options import Options
+from selenium.webdriver.chrome.service import Servic
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
-from selenium.common.exceptions import TimeoutException
+from selenium.common.exceptions import TimeoutException, ElementNotFound
 from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.common.action_chains import ActionChains
 import time
@@ -17,6 +15,8 @@ class SettingsPage:
     CURRENT_SELECTION = (By.CSS_SELECTOR, "[class^='rcm-select__single-value']")
     OK_BTN = (By.ID, "cmdOK")
     CANCEL_BTN = (By.ID, "cmdCancel")
+    LOGOUT_BTN = (By.ID, "user_logout")
+    
     GROUP_MAP = {
     "2-Grp-2 Northwell Health [CONFIDENTIAL]": 2,
     "3-Grp-3 NH Physician Partners [CONFIDENTIAL]": 3,
@@ -40,6 +40,18 @@ class SettingsPage:
         self._open_settings()
         WebDriverWait(self.driver, 2).until(
             EC.presence_of_element_located(self.HOG_SCREEN_LINK)
+        ).click()
+    
+    def logout(self):
+        # check if any modal is open
+        MODAL_OK = (By.ID, "modalButtonOk")
+        try:
+            self.driver.find_element(*MODAL_OK).click()
+        except ElementNotFound:
+            pass
+        self._open_settings()
+        WebDriverWait(self.driver, 2).until(
+            EC.presence_of_element_located(self.LOGOUT_BTN)
         ).click()
     
     def _get_current_group(self, cancel=False):
