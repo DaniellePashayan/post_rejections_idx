@@ -46,8 +46,10 @@ def main():
     logger.add(info_path, rotation="5 MB", level="INFO")
     
     input_file_path = '//NT2KWB972SRV03/SHAREDATA/CPP-Data/CBO Westbury Managers/LEADERSHIP/Bot Folder/ORCCA Rejection Scripting'
-    file_name = f'*{file_date_format}*.csv'
-    file_name = f'*11_14_2025*.csv'
+    if os.getenv("FILE_NAME_OVERRIDE"):
+        file_name = f'*{os.getenv("FILE_NAME_OVERRIDE")}*.csv'
+    else:
+        file_name = f'*{file_date_format}*.csv'
     files_to_process = glob(f'{input_file_path}/{file_name}')
     logger.debug(f"Files to process: {files_to_process}")
 
@@ -65,9 +67,10 @@ def main():
     
         options = webdriver.ChromeOptions()
         options.add_argument("--force-device-scale-factor=0.75")
-        # options.add_argument('--headless=new')
-        # options.add_argument('--no-sandbox')
-        # options.add_argument('--disable-dev-shm-usage')
+        if os.getenv("ENVIRONMENT").lower() == "production":
+            options.add_argument('--headless=new')
+            options.add_argument('--no-sandbox')
+            options.add_argument('--disable-dev-shm-usage')
     
         driver = webdriver.Chrome(options=options)
         
