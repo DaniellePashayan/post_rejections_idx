@@ -32,13 +32,13 @@ class SettingsPage:
 
     # 2. Methods (Actions the user can take)
     def _open_settings(self):
-        WebDriverWait(self.driver, 3).until(
+        WebDriverWait(self.driver, 2).until(
             EC.presence_of_element_located(self.MENU_BUTTON)
         ).click()
 
     def _open_hog_screen(self):
         self._open_settings()
-        WebDriverWait(self.driver, 3).until(
+        WebDriverWait(self.driver, 2).until(
             EC.presence_of_element_located(self.HOG_SCREEN_LINK)
         ).click()
     
