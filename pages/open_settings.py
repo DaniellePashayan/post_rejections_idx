@@ -1,8 +1,7 @@
 from selenium.webdriver.common.by import By
-from selenium.webdriver.chrome.service import Servic
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
-from selenium.common.exceptions import TimeoutException, ElementNotFound
+from selenium.common.exceptions import TimeoutException, NoSuchElementException
 from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.common.action_chains import ActionChains
 import time
@@ -47,7 +46,7 @@ class SettingsPage:
         MODAL_OK = (By.ID, "modalButtonOk")
         try:
             self.driver.find_element(*MODAL_OK).click()
-        except ElementNotFound:
+        except NoSuchElementException:
             pass
         self._open_settings()
         WebDriverWait(self.driver, 2).until(

@@ -41,4 +41,5 @@ class LoginPage:
             raise Exception("Login failed - invalid credentials")
         except TimeoutException:
             logger.info("Login successful - no error message detected")
+            return True
     

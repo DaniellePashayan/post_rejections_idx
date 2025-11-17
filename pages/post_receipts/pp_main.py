@@ -1,13 +1,14 @@
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
-from selenium.common.exceptions import TimeoutException
+from selenium.common.exceptions import TimeoutException, ElementClickInterceptedException
 from selenium.webdriver.common.keys import Keys
 import time
 from loguru import logger
 import re
 
 from pages.modals.payment_code import PaymentCodesModal
+from utils.screenshot import ScreenshotManager
 
 class PICScreen_Main:
     HEADER = (By.ID, "formHeader")
@@ -18,8 +19,9 @@ class PICScreen_Main:
     
     LI_POST_CHECKBOX = (By.XPATH, "//input[@id='sAf32r1']")
     
-    def __init__(self, driver):
+    def __init__(self, driver, screenshot_manager: ScreenshotManager = None):
         self.driver = driver
+        self.screenshot_manager = screenshot_manager
     
     def get_current_batch_group(self):
         try:
@@ -115,12 +117,20 @@ class PICScreen_Main:
                 return
         
         time.sleep(0.5)
-        
         code_field = WebDriverWait(self.driver, 10).until(EC.element_to_be_clickable(self.CODE_FIELD))
         code_field.click()
         code_field.clear()
         code_field.send_keys(paycode + Keys.TAB)
         
+        # check for modal
+        try:
+            MODAL_OK = MODAL_OK = (By.ID, "modalButtonOk")
+            modal = self.driver.find_element(*MODAL_OK)            
+            modal.click()
+            return False
+        except Exception:
+            return True
+    
     def open_paycode_modal(self):
         self.driver.find_element(*self.CODE_MAGNIFY_ICON).click()        
     

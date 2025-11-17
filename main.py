@@ -78,7 +78,10 @@ def main():
         
         login = LoginPage(driver, screenshot_manager)
         login.navigate_to_login()
-        login.login(os.getenv("IDX_USERNAME"), os.getenv("IDX_PASSWORD"))
+        logged_in = login.login(os.getenv("IDX_USERNAME"), os.getenv("IDX_PASSWORD"))
+        if not logged_in:
+            logger.error("Login failed, terminating script.")
+            return
         
         settings_page = SettingsPage(driver)
         vtb = VTBPage(driver)
@@ -119,11 +122,16 @@ def main():
                             continue
                         rejection.Paycode = paycode
                     db_manager.update_row(rejection)
-                    pic_screen.enter_paycode(rejection.Paycode)
-                    pic_screen.set_line_item_post_checkbox(True)
+                    pc_entered = pic_screen.enter_paycode(rejection.Paycode)
+                    if not pc_entered:
+                        logger.warning(f"Failed to enter paycode for patient {rejection.InvoiceNumber}, skipping.")
+                        rejection.Comment = "Failed to enter paycode"
+                        db_manager.update_row(rejection)
+                        continue
+                    pic_screen.set_line_item_post_checkbox(rejection.LineItemPost)
                     
                     pp_lipp = PP_LIPP(driver, screenshot_manager)
-                    starting_index, num_cpts_to_post = pp_lipp.num_rows_to_process() # type: ignore
+                    starting_index, num_cpts_to_post = pp_lipp.num_rows_to_process()
                     
                     # posting the first rejection will pull up the pp_lipp_rejection screen
                     pp_lipp.populate_row(starting_index, rejection)
@@ -167,13 +175,14 @@ def main():
                         screenshot_manager.capture_error_screenshot("Recovery attempt failed", recovery_error)
                         break  # Exit the loop if we can't recover
         
-        settings_page.logout()
-        driver.quit()
         # move file to archive
         archive_dir = os.path.join(input_file_path, "ARCHIVE")
         if not os.path.exists(archive_dir):
             os.makedirs(archive_dir)
         shutil.move(file, os.path.join(archive_dir, os.path.basename(file)))
+
+    settings_page.logout()
+    driver.quit()
 
 if __name__ == "__main__":
     try:
