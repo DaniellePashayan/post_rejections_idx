@@ -1,6 +1,10 @@
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
+from selenium.common.exceptions import TimeoutException
+from loguru import logger
+
+from utils.screenshot import ScreenshotManager
 
 class LoginPage:
     # 1. Locators (Use a clear naming convention)
@@ -9,8 +13,9 @@ class LoginPage:
     PASSWORD_INPUT = (By.ID, "password")
     LOGIN_BUTTON = (By.ID, "pfh-login-module-button-login")
     
-    def __init__(self, driver):
+    def __init__(self, driver, screenshot_manager: ScreenshotManager = None):
         self.driver = driver
+        self.screenshot_manager = screenshot_manager
 
     # 2. Methods (Actions the user can take)
     def navigate_to_login(self):
@@ -24,3 +29,16 @@ class LoginPage:
         
         self.driver.find_element(*self.PASSWORD_INPUT).send_keys(password)
         self.driver.find_element(*self.LOGIN_BUTTON).click()
+
+        try:
+            error = WebDriverWait(self.driver, 10).until(
+                EC.presence_of_element_located((By.CSS_SELECTOR,"p.alert-block.error"))
+            )
+            error_text = error.text
+            logger.error(f"Login error message: {error_text}")
+            if self.screenshot_manager:
+                self.screenshot_manager.capture_error_screenshot("login_failure", "Login failed - error message displayed")
+            raise Exception("Login failed - invalid credentials")
+        except TimeoutException:
+            logger.info("Login successful - no error message detected")
+    
