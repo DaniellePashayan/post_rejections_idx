@@ -1,4 +1,3 @@
-from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
@@ -10,6 +9,7 @@ from typing import Tuple
 
 from utils.database import Rejections
 from pages.post_receipts.post_dropdown import PostDropdown
+from utils.screenshot import ScreenshotManager
 
 class PP_LIPP:
     APPROVED_FIELD_BASE = 'sBf33r'
@@ -21,8 +21,9 @@ class PP_LIPP:
     OK_BUTTON = (By.ID, 'OK')
     CANCEL_BUTTON = (By.ID, 'Cancel')
 
-    def __init__(self, driver):
+    def __init__(self, driver, screenshot_manager: ScreenshotManager = None):
         self.driver = driver
+        self.screenshot_manager = screenshot_manager
     
     def num_rows_to_process(self) -> Tuple[int, int] | None:
         R1_CPT_INDEX_BASE = 'sBf8r'
@@ -83,11 +84,15 @@ class PP_LIPP:
             
             except Exception as e:
                 logger.error(f"Error during scroll operation for row {row_number}: {e}")
+                if self.screenshot_manager:
+                    self.screenshot_manager.capture_error_screenshot(f"Scroll error for row {row_number}", e)
                 # Final attempt without scrolling
                 try:
                     row_element = self.driver.find_element(By.ID, self.ROW_BASE + str(row_number))
                 except NoSuchElementException:
                     logger.error(f"Final attempt to find row {row_number} failed")
+                    if self.screenshot_manager:
+                        self.screenshot_manager.capture_error_screenshot(f"Row {row_number} not found after all attempts")
                     raise
         dropdown = PostDropdown(self.driver, row_element)
         dropdown.set_value('R')
@@ -100,6 +105,8 @@ class PP_LIPP:
             rejection_field.send_keys(rejection.RejCode1 + Keys.TAB * 2)
         except TimeoutException:
             logger.error(f"Rejection field for row {row_number} not found or not clickable.")
+            if self.screenshot_manager:
+                self.screenshot_manager.capture_error_screenshot(f"Rejection field timeout for row {row_number}")
     
     def finalize_posting(self):
         # ensure no cash is posted
