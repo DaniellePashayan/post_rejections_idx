@@ -44,7 +44,7 @@ def main():
     logger.add(info_path, rotation="5 MB", level="INFO")
     
     input_file_path = '//NT2KWB972SRV03/SHAREDATA/CPP-Data/CBO Westbury Managers/LEADERSHIP/Bot Folder/ORCCA Rejection Scripting'
-    if os.getenv("FILE_NAME_OVERRIDE"):
+    if os.getenv("FILE_NAME_OVERRIDE") != '' and os.getenv("FILE_NAME_OVERRIDE") is not None:
         file_name = f'*{os.getenv("FILE_NAME_OVERRIDE")}*.csv'
     else:
         file_name = f'*{file_date_format}*.csv'
