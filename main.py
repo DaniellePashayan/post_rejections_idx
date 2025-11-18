@@ -1,5 +1,7 @@
 from pages.login_page import LoginPage
 from pages.modals.payment_code import PaymentCodesModal
+from pages.modals.reset_modal import ResetModal
+from pages.modals.reset_modal import ResetModal
 from pages.open_settings import SettingsPage
 from pages.open_vtb import VTBPage
 from pages.post_receipts.pp_main import PICScreen_Main
@@ -70,6 +72,9 @@ def main():
             options.add_argument('--headless=new')
             options.add_argument('--no-sandbox')
             options.add_argument('--disable-dev-shm-usage')
+        else:
+            # add remote debugging for non-production
+            options.add_argument("--remote-debugging-port=9222")            
     
         driver = webdriver.Chrome(options=options)
         
@@ -109,7 +114,12 @@ def main():
 
                     select_patient = PP_SelectPatient(driver)
                     select_patient.reset_patient()
-                    select_patient.select_patient(rejection.InvoiceNumber)
+                    patient_changed = select_patient.select_patient(rejection.InvoiceNumber)
+                    
+                    if patient_changed is not True:
+                        rejection.Comment = f"Modal detected during patient selection: {patient_changed}"
+                        if 'group' in patient_changed.lower():
+                            continue
 
                     if rejection.Paycode == "":
                         pic_screen.open_paycode_modal()
@@ -138,6 +148,11 @@ def main():
                     
                     pp_lipp_rej = PP_LIPP_Rejections(driver, rejection)
                     pp_lipp_rej.enter_carrier(rejection.Carrier)
+                    reset_modal = ResetModal(driver, screenshot_manager)
+                    modal_text = reset_modal.close_if_present()
+                    if modal_text is not None:
+                        logger.info(f"Modal detected during rejection entry: {modal_text}")
+
                     pp_lipp_rej.close_screen()
                     
                     if num_cpts_to_post > 1:
