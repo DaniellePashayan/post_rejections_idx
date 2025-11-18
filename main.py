@@ -118,6 +118,7 @@ def main():
                     
                     if patient_changed is not True:
                         rejection.Comment = f"Modal detected during patient selection: {patient_changed}"
+                        db_manager.update_row(rejection)
                         if 'group' in patient_changed.lower():
                             continue
 
@@ -189,6 +190,12 @@ def main():
                         logger.error(f"Failed to recover after error: {recovery_error}")
                         screenshot_manager.capture_error_screenshot("Recovery attempt failed", recovery_error)
                         break  # Exit the loop if we can't recover
+        
+        # check in the db that all rows for the file name are either completed or have a comment
+        all_rejections = db_manager.get_unposted_invoices(os.path.basename(file), group)
+        if all_rejections:
+            logger.warning(f"Not all rejections for file {os.path.basename(file)} and group {group} were processed. They will not be archived.")
+            continue
         
         # move file to archive
         archive_dir = os.path.join(input_file_path, "ARCHIVE")
