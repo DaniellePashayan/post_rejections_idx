@@ -187,6 +187,7 @@ def main():
                     try:
                         pp_batch.open_batch()
                     except Exception as recovery_error:
+                        send_error_notification("FATAL ERROR: Unable to recover during processing.")
                         logger.error(f"Failed to recover after error: {recovery_error}")
                         screenshot_manager.capture_error_screenshot("Recovery attempt failed", recovery_error)
                         break  # Exit the loop if we can't recover
@@ -204,6 +205,7 @@ def main():
         shutil.move(file, os.path.join(archive_dir, os.path.basename(file)))
 
     settings_page.logout()
+    time.sleep(2)
     driver.quit()
 
 if __name__ == "__main__":
