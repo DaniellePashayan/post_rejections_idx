@@ -55,7 +55,7 @@ class SettingsPage:
     
     def _get_current_group(self, cancel=False):
         try:
-            WebDriverWait(self.driver, 5).until(
+            WebDriverWait(self.driver, 2).until(
             EC.presence_of_element_located(self.GROUP_SELECTOR))
         except TimeoutException:
             self._open_hog_screen()
