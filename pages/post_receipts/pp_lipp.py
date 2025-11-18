@@ -58,19 +58,19 @@ class PP_LIPP:
         rejection_locator = (By.ID, f'{self.REJECTION_FIELD_BASE}{row_number}')
         try:
             row_element = self.driver.find_element(By.ID, self.ROW_BASE + str(row_number))
-        except NoSuchElementException:
+        except Exception:
             # Try to scroll to make the row visible
             try:
                 # First try scrolling to the previous row
                 previous_row_id = self.ROW_BASE + str(row_number - 1)
                 previous_element = self.driver.find_element(By.ID, previous_row_id)
-                self.driver.execute_script("arguments[0].scrollIntoView({block: 'center'});", previous_element)
+                self.driver.execute_script("arguments[0].scrollIntoView({block: 'top'});", previous_element)
                 time.sleep(0.5)  # Give time for any dynamic loading
                 
                 # Now try to find the target row
                 row_element = self.driver.find_element(By.ID, self.ROW_BASE + str(row_number))
                 
-            except NoSuchElementException:
+            except Exception:
                 # If previous row doesn't exist, try scrolling to bottom of page
                 logger.warning(f"Previous row {row_number - 1} not found, scrolling to bottom")
                 self.driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
@@ -78,7 +78,7 @@ class PP_LIPP:
                 
                 try:
                     row_element = self.driver.find_element(By.ID, self.ROW_BASE + str(row_number))
-                except NoSuchElementException:
+                except Exception:
                     logger.error(f"Row {row_number} not found even after scrolling. Available rows may be limited.")
                     raise NoSuchElementException(f"Unable to locate row {row_number} after multiple scroll attempts")
             

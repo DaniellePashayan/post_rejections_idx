@@ -7,6 +7,8 @@ from selenium.webdriver.common.keys import Keys
 import time
 from loguru import logger
 
+from pages.modals.reset_modal import ResetModal
+
 
 class PP_SelectPatient:
     PATIENT_LOCATOR = (By.ID, "sAf1")
@@ -50,7 +52,7 @@ class PP_SelectPatient:
         logger.debug("Patient field reset via Actions -> Reset.")
 
     
-    def select_patient(self, invoice_number:str):  
+    def select_patient(self, invoice_number:str) -> str | bool:  
         # if field is an int, convert to str
         if isinstance(invoice_number, int):
             invoice_number = str(invoice_number)
@@ -70,17 +72,25 @@ class PP_SelectPatient:
         patient_field.send_keys(Keys.TAB)
 
         time.sleep(0.5)
-        self.check_for_deceased_modal()
-            
-        if not self._confirm_field_populated(self.INVOICE_LOCATOR, invoice_number):
-            logger.error("Invoice number field not populated after entry, retrying")
-            time.sleep(0.5)
-            patient_field.click()
-            patient_field.clear()
-            time.sleep(1)
-            patient_field.send_keys("-" + invoice_number)
-            time.sleep(1)
-            patient_field.send_keys(Keys.TAB)
+        reset_modal = ResetModal(self.driver)
+        modal_text = reset_modal.close_if_present()
+        if modal_text is not None:
+            logger.warning(f"Modal detected during patient selection: {modal_text}")
+            return modal_text
+        else:
+            WebDriverWait(self.driver, 5).until(
+                EC.element_to_be_clickable(self.INVOICE_LOCATOR))
+            if not self._confirm_field_populated(self.INVOICE_LOCATOR, invoice_number):
+                logger.error("Invoice number field not populated after entry, retrying")
+                time.sleep(0.5)
+                patient_field.click()
+                patient_field.clear()
+                time.sleep(1)
+                patient_field.send_keys("-" + invoice_number)
+                time.sleep(1)
+                patient_field.send_keys(Keys.TAB)
+            return True
+        
             
     
     def check_for_deceased_modal(self):
