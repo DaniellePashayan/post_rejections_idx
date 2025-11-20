@@ -36,11 +36,14 @@ class PP_LIPP_Rejections:
         input_field.send_keys(value)
     
     def enter_carrier(self, carrier_override: str =''):
+        time.sleep(0.5)
         carrier_value = self.rejection_dict.get('Carrier', carrier_override)
         logger.debug(f"Entering carrier: {carrier_value}")
         self._populate_input_field(self.CARRIER_INPUT[1], carrier_value)
-        time.sleep(1)
-        self.confirm_field_populated(self.CARRIER_INPUT, carrier_value)
+        time.sleep(0.5)
+        if not self.confirm_field_populated(self.CARRIER_INPUT, carrier_value):
+            time.sleep(1)
+            self._populate_input_field(self.CARRIER_INPUT[1], carrier_value)
     
     def confirm_field_populated(self, locator, expected_value):
         field = WebDriverWait(self.driver, 10).until(EC.presence_of_element_located(locator))
