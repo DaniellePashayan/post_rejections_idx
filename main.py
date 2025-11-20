@@ -156,9 +156,8 @@ def main():
 
                     pp_lipp_rej.close_screen()
                     
-                    if num_cpts_to_post > 1:
-                        if starting_index == num_cpts_to_post:
-                            num_cpts_to_post = num_cpts_to_post + 1
+                    if num_cpts_to_post > 1 and starting_index > 1:
+                        num_cpts_to_post = num_cpts_to_post + 1
                         
                         for cpt_row in range(starting_index+1, num_cpts_to_post + 1):
                             # start at 2 since the pp_lipp_rejection screen already populated row 1
