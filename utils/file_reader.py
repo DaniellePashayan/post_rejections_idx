@@ -5,6 +5,7 @@ from utils.database import DBManager, Rejections, ALLOWED_CARRIERS
 class InputFile:
     def __init__(self, file_path: str, db_manager: DBManager):
         self.file_path = file_path
+        self.file_name = file_path.split('\\')[-1]
         self.db_manager = db_manager
         self.group_data = {
             3: [],
@@ -33,7 +34,7 @@ class InputFile:
         else:
             data['Completed'] = False
         
-        data['FileName'] = self.file_path
+        data['FileName'] = self.file_name
                 
         self.data = data
     
@@ -43,7 +44,7 @@ class InputFile:
             return None
         
         for group_number in self.group_data.keys():
-            results = self.db_manager.get_unposted_invoices(self.file_path, group_number)
+            results = self.db_manager.get_unposted_invoices(self.file_name, group_number)
 
             self.group_data[group_number] = results
             logger.info(f"Filtered data for group {group_number}, {len(results)} records found.")
