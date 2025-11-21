@@ -140,6 +140,11 @@ def main():
                         db_manager.update_row(rejection)
                         continue
                     pic_screen.set_line_item_post_checkbox(rejection.LineItemPost)
+                    # "must use line item post" modal can appear here
+                    reset_modal = ResetModal(driver, screenshot_manager)
+                    modal_text = reset_modal.close_if_present()
+                    if modal_text is not None:
+                        logger.info(f"Modal detected during rejection entry: {modal_text}")
                     
                     pp_lipp = PP_LIPP(driver, screenshot_manager)
                     starting_index, num_cpts_to_post = pp_lipp.num_rows_to_process()
@@ -177,11 +182,11 @@ def main():
                 except Exception as e:
                     logger.error(f"Unexpected error processing patient {rejection.InvoiceNumber}: {e}")
                     screenshot_manager.capture_error_screenshot(
-                        error_context=f"Processing patient {rejection.InvoiceNumber}",
+                        error_context=f"{rejection.InvoiceNumber}",
                         exception=e
                     )
-                    rejection.Comment = f"Error: {str(e)}"
-                    db_manager.update_row(rejection)
+                    # rejection.Comment = f"Error: {str(e)}"
+                    # db_manager.update_row(rejection)
                     # Try to recover by opening batch
                     try:
                         pp_batch.open_batch()
@@ -192,16 +197,16 @@ def main():
                         break  # Exit the loop if we can't recover
         
         # check in the db that all rows for the file name are either completed or have a comment
-        all_rejections = db_manager.get_unposted_invoices(os.path.basename(file), group)
-        if all_rejections:
+        unposted_invoices = db_manager.get_unposted_invoices(os.path.basename(file), group)
+        if unposted_invoices:
             logger.warning(f"Not all rejections for file {os.path.basename(file)} and group {group} were processed. They will not be archived.")
             continue
-        
-        # move file to archive
-        archive_dir = os.path.join(input_file_path, "ARCHIVE")
-        if not os.path.exists(archive_dir):
-            os.makedirs(archive_dir)
-        shutil.move(file, os.path.join(archive_dir, os.path.basename(file)))
+        else:
+            # move file to archive
+            archive_dir = os.path.join(input_file_path, "ARCHIVE")
+            if not os.path.exists(archive_dir):
+                os.makedirs(archive_dir)
+            shutil.move(file, os.path.join(archive_dir, os.path.basename(file)))
 
     settings_page.logout()
     t.sleep(2)
