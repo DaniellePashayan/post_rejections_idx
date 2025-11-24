@@ -3,6 +3,8 @@ from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.common.exceptions import TimeoutException, NoSuchElementException
 from selenium.webdriver.common.keys import Keys
+from selenium.webdriver.common.action_chains import ActionChains
+
 import time
 from loguru import logger
 from typing import Tuple
@@ -64,7 +66,8 @@ class PP_LIPP:
                 # First try scrolling to the previous row
                 previous_row_id = self.ROW_BASE + str(row_number - 1)
                 previous_element = self.driver.find_element(By.ID, previous_row_id)
-                self.driver.execute_script("arguments[0].scrollIntoView({block: 'top'});", previous_element)
+                ActionChains(self.driver).move_to_element(previous_element).perform()
+                ActionChains(self.driver).move_to_element(row_element).perform()
                 time.sleep(0.5)  # Give time for any dynamic loading
                 
                 # Now try to find the target row
