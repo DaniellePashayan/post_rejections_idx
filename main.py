@@ -1,7 +1,6 @@
 from pages.login_page import LoginPage
 from pages.modals.payment_code import PaymentCodesModal
 from pages.modals.reset_modal import ResetModal
-from pages.modals.reset_modal import ResetModal
 from pages.open_settings import SettingsPage
 from pages.open_vtb import VTBPage
 from pages.post_receipts.pp_main import PICScreen_Main
@@ -42,8 +41,8 @@ def main():
     info_path = os.path.join(log_folder_path, f"info_{time}.log")
     
     logger.remove()
-    logger.add(debug_path, rotation="5 MB", level="DEBUG")
-    logger.add(info_path, rotation="5 MB", level="INFO")
+    logger.add(debug_path, rotation="5 MB", level="DEBUG", backtrace=True, diagnose=True, retention="3 days", compression="zip")
+    logger.add(info_path, rotation="5 MB", level="INFO", retention="3 days", compression="zip")
     
     input_file_path = '//NT2KWB972SRV03/SHAREDATA/CPP-Data/CBO Westbury Managers/LEADERSHIP/Bot Folder/ORCCA Rejection Scripting'
     if os.getenv("FILE_NAME_OVERRIDE") != '' and os.getenv("FILE_NAME_OVERRIDE") is not None:
@@ -112,7 +111,7 @@ def main():
                 try:
                     logger.info(f"Processing patient: {rejection.InvoiceNumber}")
 
-                    select_patient = PP_SelectPatient(driver)
+                    select_patient = PP_SelectPatient(driver, screenshot_manager)
                     select_patient.reset_patient()
                     patient_changed = select_patient.select_patient(rejection.InvoiceNumber)
                     
@@ -145,6 +144,15 @@ def main():
                     modal_text = reset_modal.close_if_present()
                     if modal_text is not None:
                         logger.info(f"Modal detected during rejection entry: {modal_text}")
+                    
+                        if modal_text == 'Line Item Payments Only':
+                            pc_entered = pic_screen.enter_paycode(rejection.Paycode)
+                            if not pc_entered:
+                                logger.warning(f"Failed to enter paycode for patient {rejection.InvoiceNumber}, skipping.")
+                                rejection.Comment = "Failed to enter paycode"
+                                db_manager.update_row(rejection)
+                                continue
+                            pic_screen.set_line_item_post_checkbox(rejection.LineItemPost)
                     
                     pp_lipp = PP_LIPP(driver, screenshot_manager)
                     starting_index, num_cpts_to_post = pp_lipp.num_rows_to_process()
@@ -185,8 +193,7 @@ def main():
                         error_context=f"{rejection.InvoiceNumber}",
                         exception=e
                     )
-                    # rejection.Comment = f"Error: {str(e)}"
-                    # db_manager.update_row(rejection)
+
                     # Try to recover by opening batch
                     try:
                         pp_batch.open_batch()
