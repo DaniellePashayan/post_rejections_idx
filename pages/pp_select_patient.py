@@ -8,6 +8,7 @@ import time
 from loguru import logger
 
 from pages.modals.reset_modal import ResetModal
+from utils.screenshot import ScreenshotManager
 
 
 class PP_SelectPatient:
@@ -21,8 +22,9 @@ class PP_SelectPatient:
     DECEASED_MODAL_INDICATOR = (By.CSS_SELECTOR, "div.fe_c_overlay__dialog.fe_c_modal__dialog.fe_c_modal__dialog--large.fe_c_modal__dialog--padded.fe_is-info")
     MODAL_CLOSE = (By.ID, "modalButtonOk")
     
-    def __init__(self, driver):
+    def __init__(self, driver, screenshot_manager: ScreenshotManager):
         self.driver = driver
+        self.screenshot_manager = screenshot_manager
     
     def _confirm_field_populated(self, field_locator, expected_value, timeout=5):
         try:
@@ -72,7 +74,7 @@ class PP_SelectPatient:
         patient_field.send_keys(Keys.TAB)
 
         time.sleep(0.5)
-        reset_modal = ResetModal(self.driver)
+        reset_modal = ResetModal(self.driver, self.screenshot_manager)
         modal_text = reset_modal.close_if_present()
         if modal_text is not None:
             logger.warning(f"Modal detected during patient selection: {modal_text}")

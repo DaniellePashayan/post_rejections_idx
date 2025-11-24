@@ -10,7 +10,7 @@ class ResetModal:
     MODAL_INDICATOR = (By.CSS_SELECTOR, "div.fe_c_overlay__dialog.fe_c_modal__dialog.fe_c_modal__dialog--large.fe_c_modal__dialog--padded.fe_is-info")
     MODAL_CLOSE = (By.ID, "modalButtonOk")
 
-    def __init__(self, driver, screenshot_manager: ScreenshotManager = None):
+    def __init__(self, driver, screenshot_manager: ScreenshotManager):
         self.driver = driver
         self.screenshot_manager = screenshot_manager
 
@@ -21,6 +21,7 @@ class ResetModal:
             )
             modal_text = modal.text
             if modal_text:
+                self.screenshot_manager.capture_error_screenshot("reset_modal_detected", "Reset modal detected: " + modal_text)
                 WebDriverWait(self.driver, timeout).until(
                     EC.element_to_be_clickable(self.MODAL_CLOSE)
                 )
