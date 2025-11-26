@@ -63,6 +63,7 @@ class PP_LIPP:
         except Exception:
             # Try to scroll to make the row visible
             try:
+                #TODO: fix scrolling for rows above 6
                 # First try scrolling to the previous row
                 previous_row_id = self.ROW_BASE + str(row_number - 1)
                 previous_element = self.driver.find_element(By.ID, previous_row_id)
