@@ -30,7 +30,7 @@ class PP_LIPP_Rejections:
         
     def _populate_input_field(self, base_locator, value):
         field_locator = (By.ID, f'{base_locator}')
-        input_field = WebDriverWait(self.driver, 10).until(EC.presence_of_element_located(field_locator))
+        input_field = WebDriverWait(self.driver, 2).until(EC.presence_of_element_located(field_locator))
         input_field.click()
         input_field.clear()
         input_field.send_keys(value)
@@ -39,6 +39,7 @@ class PP_LIPP_Rejections:
         time.sleep(0.5)
         carrier_value = self.rejection_dict.get('Carrier', carrier_override)
         logger.debug(f"Entering carrier: {carrier_value}")
+        WebDriverWait(self.driver, 2).until(EC.element_to_be_clickable(self.CARRIER_INPUT))
         self._populate_input_field(self.CARRIER_INPUT[1], carrier_value)
         time.sleep(0.5)
         if not self.confirm_field_populated(self.CARRIER_INPUT, carrier_value):

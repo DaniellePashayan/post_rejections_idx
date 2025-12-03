@@ -1,3 +1,4 @@
+import time
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
@@ -15,6 +16,7 @@ class ResetModal:
         self.screenshot_manager = screenshot_manager
 
     def close_if_present(self, timeout=2) -> str | None:
+        time.sleep(0.5)
         try:
             modal = WebDriverWait(self.driver, timeout).until(
                 EC.presence_of_element_located(self.MODAL_INDICATOR)

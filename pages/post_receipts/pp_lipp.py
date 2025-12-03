@@ -56,57 +56,87 @@ class PP_LIPP:
                 return True
         return False
     
-    def populate_row(self, row_number: int, rejection: Rejections):
+    def _scroll_to_row_by_transform(self, row_number: int) -> bool:
+        """
+        Scroll a lazy-loaded virtualized container to reveal a specific row.
+        The container uses transform: translate() on an inner div for virtual scrolling.
+        Returns True if successful, False otherwise.
+        """
+        try:
+            script = """
+            // Find the outer container (with overflow: hidden)
+            var container = document.querySelector('div[style*="height: 1317px"][style*="overflow: hidden"]');
+            if (!container) {
+                console.error('Container not found');
+                return false;
+            }
+            
+            // Find the inner div with transform
+            var innerDiv = container.querySelector('div[style*="transform"]');
+            if (!innerDiv) {
+                console.error('Inner transform div not found');
+                return false;
+            }
+            
+            // Calculate scroll position
+            // Each row is approximately 186px tall (height of each section)
+            var rowNumber = arguments[0];
+            var rowHeight = 186; // adjust if your rows have different heights
+            var visibleHeight = 375; // only 375px visible at a time
+            var containerHeight = 1317; // total container height
+            
+            // Calculate the Y offset needed to show this row
+            // We want to position it so it's visible in the 375px viewport
+            var targetY = -(rowNumber - 2) * rowHeight; // row 2 is at 0, so offset from there
+            
+            // Clamp to valid range
+            var maxScroll = -(containerHeight - visibleHeight);
+            targetY = Math.max(maxScroll, Math.min(0, targetY));
+            
+            // Apply the transform
+            innerDiv.style.transform = 'translate(0px, ' + targetY + 'px)';
+            
+            // Trigger any scroll event listeners
+            var event = new Event('scroll');
+            container.dispatchEvent(event);
+            
+            console.log('Scrolled to row ' + rowNumber + ' with transform: ' + targetY + 'px');
+            return true;
+            """
+            
+            result = self.driver.execute_script(script, row_number)
+            import time
+            time.sleep(0.5)  # Wait for lazy loading to render the elements
+            return result if result else False
+            
+        except Exception as e:
+            logger.error(f"_scroll_to_row_by_transform failed: {e}")
+            return False
+    
+    def populate_row(self, row_number: int, first_row_number: int, num_cpts: int, rejection: Rejections):
         rejection_locator = (By.ID, f'{self.REJECTION_FIELD_BASE}{row_number}')
         try:
             row_element = self.driver.find_element(By.ID, self.ROW_BASE + str(row_number))
+            dropdown = PostDropdown(self.driver, row_element)
+            dropdown.set_value('R')
+            # if row_number > 1:
+            #     self._scroll_to_row_by_transform(row_number)
         except Exception:
-            # Try to scroll to make the row visible
-            try:
-                #TODO: fix scrolling for rows above 6
-                # First try scrolling to the previous row
-                previous_row_id = self.ROW_BASE + str(row_number - 1)
-                previous_element = self.driver.find_element(By.ID, previous_row_id)
-                ActionChains(self.driver).move_to_element(previous_element).perform()
-                ActionChains(self.driver).move_to_element(row_element).perform()
-                time.sleep(0.5)  # Give time for any dynamic loading
-                
-                # Now try to find the target row
-                row_element = self.driver.find_element(By.ID, self.ROW_BASE + str(row_number))
-                
-            except Exception:
-                # If previous row doesn't exist, try scrolling to bottom of page
-                logger.warning(f"Previous row {row_number - 1} not found, scrolling to bottom")
-                self.driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
-                time.sleep(1)
-                
-                try:
-                    row_element = self.driver.find_element(By.ID, self.ROW_BASE + str(row_number))
-                except Exception:
-                    logger.error(f"Row {row_number} not found even after scrolling. Available rows may be limited.")
-                    raise NoSuchElementException(f"Unable to locate row {row_number} after multiple scroll attempts")
-            
-            except Exception as e:
-                logger.error(f"Error during scroll operation for row {row_number}: {e}")
-                if self.screenshot_manager:
-                    self.screenshot_manager.capture_error_screenshot(f"Scroll error for row {row_number}", e)
-                # Final attempt without scrolling
-                try:
-                    row_element = self.driver.find_element(By.ID, self.ROW_BASE + str(row_number))
-                except NoSuchElementException:
-                    logger.error(f"Final attempt to find row {row_number} failed")
-                    if self.screenshot_manager:
-                        self.screenshot_manager.capture_error_screenshot(f"Row {row_number} not found after all attempts")
-                    raise
-        dropdown = PostDropdown(self.driver, row_element)
-        dropdown.set_value('R')
+            logger.error(f"Row {row_number} not found even after scrolling. Available rows may be limited.")
+            raise NoSuchElementException(f"Unable to locate row {row_number} after multiple scroll attempts")
 
         try:
             rejection_field = WebDriverWait(self.driver, 3)\
                 .until(EC.element_to_be_clickable(rejection_locator))
             rejection_field.click()
             rejection_field.clear()
-            rejection_field.send_keys(rejection.RejCode1 + Keys.TAB * 2)
+            
+            if row_number > first_row_number:
+                num_tabs = 2 if row_number >= num_cpts else 7
+            else:
+                num_tabs = 1
+            rejection_field.send_keys(rejection.RejCode1 + Keys.TAB * num_tabs)
+
         except TimeoutException:
             logger.error(f"Rejection field for row {row_number} not found or not clickable.")
             if self.screenshot_manager:
