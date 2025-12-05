@@ -1,4 +1,4 @@
-from sqlmodel import create_engine, SQLModel, Field, Session, select, update, Column
+from sqlmodel import create_engine, SQLModel, Field, Session, select, update
 from sqlalchemy import CheckConstraint
 from typing import Optional
 from pydantic import ConfigDict, field_validator
@@ -18,14 +18,14 @@ ALLOWED_CARRIERS = [
     "MEDICARE", "MERITAIN", "METROPLUS", "MULTIPLAN", "NATL PREFFERED PROV NETWORK",
     "NEIGHBORHOOD", "NO FAULT", "OXFORD", "PHCS", "PHS", "SELF PAY", "TOUCHSTONE",
     "TRICARE", "UNION", "UNITED HEALTHCARE", "UNITED HEALTHCARE EMPIRE", "VYTRA",
-    "WELLCARE", "WORKERS COMP"
+    "WELLCARE", "WORKERS COMP", ""
 ]
 
 class Rejections(SQLModel, table=True, extend_existing=True):
     __table_args__ = (
         CheckConstraint(
-            # For now, keep it minimal or update to the full list
-            "Carrier IN ('AARP','AETNA','AFFINITY','ALICARE','AMERICHOICE','AMERIGROUP','AMERIHEALTH','ATLANTIS','BEECH STREET','BLUE CROSS BLUE SHIELD','CARECONNECT','CHOICE CARE','CIGNA','CONNECTICARE','COVENTRY','DEVON','EASY CHOICE','ELDERPLAN','FIDELIS','FIRST HEALTH','FIRST UNITED','GENERIC','GHI','GUARDIAN','HEALTHCARE PARTNERS','HEALTHFIRST','HEALTHNET','HEALTHPLUS','HIP','HORIZON','HUMANA','LIBERTY','LOCAL 1199','LOCAL 3','MAGELLAN','MAGNACARE','MANAGED CARE','MEDICAID','MEDICARE','MERITAIN','METROPLUS','MULTIPLAN','NATL PREFFERED PROV NETWORK','NEIGHBORHOOD','NO FAULT','OXFORD','PHCS','PHS','SELF PAY','TOUCHSTONE','TRICARE','UNION','UNITED HEALTHCARE','UNITED HEALTHCARE EMPIRE','VYTRA','WELLCARE','WORKERS COMP')",
+            # Allow NULL values by adding "OR Carrier IS NULL"
+            "Carrier IN ('AARP','AETNA','AFFINITY','ALICARE','AMERICHOICE','AMERIGROUP','AMERIHEALTH','ATLANTIS','BEECH STREET','BLUE CROSS BLUE SHIELD','CARECONNECT','CHOICE CARE','CIGNA','CONNECTICARE','COVENTRY','DEVON','EASY CHOICE','ELDERPLAN','FIDELIS','FIRST HEALTH','FIRST UNITED','GENERIC','GHI','GUARDIAN','HEALTHCARE PARTNERS','HEALTHFIRST','HEALTHNET','HEALTHPLUS','HIP','HORIZON','HUMANA','LIBERTY','LOCAL 1199','LOCAL 3','MAGELLAN','MAGNACARE','MANAGED CARE','MEDICAID','MEDICARE','MERITAIN','METROPLUS','MULTIPLAN','NATL PREFFERED PROV NETWORK','NEIGHBORHOOD','NO FAULT','OXFORD','PHCS','PHS','SELF PAY','TOUCHSTONE','TRICARE','UNION','UNITED HEALTHCARE','UNITED HEALTHCARE EMPIRE','VYTRA','WELLCARE','WORKERS COMP','') OR Carrier IS NULL",
             name="carrier_allowed_values",
         ),
     )
@@ -33,7 +33,7 @@ class Rejections(SQLModel, table=True, extend_existing=True):
     model_config = ConfigDict(populate_by_name=True)
     
     InvoiceNumber: int = Field(primary_key=True, index=True, alias="Invoice Number")
-    Carrier: str = Field(alias="Carrier")
+    Carrier: Optional[str] = Field(default='', alias="Carrier")
     LineItemPost: bool = Field(alias="LineItemPost")
     Paycode: Optional[str] = Field(default=None, alias="Paycode")
     
@@ -53,9 +53,13 @@ class Rejections(SQLModel, table=True, extend_existing=True):
     Comment: Optional[str] = Field(default=None)
 
     @field_validator("Carrier")
-    def validate_carrier(cls, v: str) -> str:
+    def validate_carrier(cls, v: Optional[str]) -> Optional[str]:
+        # Allow None (NULL) values
+        if v is None:
+            return v
+        # Validate against allowed carriers (including empty string)
         if v not in ALLOWED_CARRIERS:
-            raise ValueError(f"Carrier must be one of {ALLOWED_CARRIERS}")
+            raise ValueError(f"Carrier must be one of {ALLOWED_CARRIERS} or None")
         return v
 
     # Accept 0/1 (and "0"/"1") values and coerce to proper booleans to
