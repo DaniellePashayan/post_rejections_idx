@@ -33,6 +33,7 @@ def main():
     year_month_day = today.strftime("%Y %m %d")
     time = today.strftime("%Y-%m-%d %H %M")
     file_date_format = today.strftime("%m_%d_%Y")
+    llerina_file_date_format = today.strftime("%m_%d_%y")
     
     log_folder_path = os.path.join("logs", year, year_month, year_month_day, time)
     os.makedirs(log_folder_path, exist_ok=True)
@@ -50,6 +51,7 @@ def main():
     else:
         file_name = f'*{file_date_format}*.csv'
     files_to_process = glob(f'{input_file_path}/{file_name}')
+    files_to_process += glob(f'{input_file_path}/*{llerina_file_date_format}*.csv')
     logger.debug(f"Files to process: {files_to_process}")
 
     if files_to_process == []:
@@ -158,7 +160,7 @@ def main():
                     starting_index, num_cpts_to_post = pp_lipp.num_rows_to_process()
                     
                     # posting the first rejection will pull up the pp_lipp_rejection screen
-                    pp_lipp.populate_row(starting_index, starting_index, num_cpts_to_post, rejection)
+                    pp_lipp.populate_row(starting_index, rejection)
                     
                     pp_lipp_rej = PP_LIPP_Rejections(driver, rejection)
                     pp_lipp_rej.enter_carrier(rejection.Carrier)
@@ -175,7 +177,7 @@ def main():
                     for cpt_row in range(starting_index+1, num_cpts_to_post + 1):
                         # start at 2 since the pp_lipp_rejection screen already populated row 1
                         logger.debug(f"Processing CPT row {cpt_row} of {num_cpts_to_post}")
-                        pp_lipp.populate_row(cpt_row, starting_index, num_cpts_to_post, rejection)
+                        pp_lipp.populate_row(cpt_row, rejection)
                     posted = pp_lipp.finalize_posting()
                     if posted:
                         rejection.Completed = 1

@@ -58,84 +58,81 @@ class PP_LIPP:
     
     def _scroll_to_row_by_transform(self, row_number: int) -> bool:
         """
-        Scroll a lazy-loaded virtualized container to reveal a specific row.
-        The container uses transform: translate() on an inner div for virtual scrolling.
-        Returns True if successful, False otherwise.
+        Scroll the lazy-loaded container (id=sBrg1) to reveal a specific row.
         """
         try:
             script = """
-            // Find the outer container (with overflow: hidden)
-            var container = document.querySelector('div[style*="height: 1317px"][style*="overflow: hidden"]');
-            if (!container) {
-                console.error('Container not found');
+            // Target the actual scrollable container by ID
+            var scrollContainer = document.getElementById('sBrg1');
+            if (!scrollContainer) {
+                console.error('Scrollable container sBrg1 not found');
                 return false;
             }
             
-            // Find the inner div with transform
-            var innerDiv = container.querySelector('div[style*="transform"]');
-            if (!innerDiv) {
-                console.error('Inner transform div not found');
-                return false;
-            }
+            var rowNumber = arguments[0];
+            var rowHeight = 186; // height of each row section
             
             // Calculate scroll position
-            // Each row is approximately 186px tall (height of each section)
-            var rowNumber = arguments[0];
-            var rowHeight = 186; // adjust if your rows have different heights
-            var visibleHeight = 375; // only 375px visible at a time
-            var containerHeight = 1317; // total container height
+            // Row 2 is at position 0, so we need (rowNumber - 2) * rowHeight
+            var scrollPosition = Math.max(0, (rowNumber - 2) * rowHeight);
             
-            // Calculate the Y offset needed to show this row
-            // We want to position it so it's visible in the 375px viewport
-            var targetY = -(rowNumber - 2) * rowHeight; // row 2 is at 0, so offset from there
+            // Make sure we don't scroll past the end
+            var maxScroll = scrollContainer.scrollHeight - scrollContainer.clientHeight;
+            scrollPosition = Math.min(scrollPosition, maxScroll);
             
-            // Clamp to valid range
-            var maxScroll = -(containerHeight - visibleHeight);
-            targetY = Math.max(maxScroll, Math.min(0, targetY));
+            console.log('Scrolling container sBrg1 to position: ' + scrollPosition + 'px for row ' + rowNumber);
             
-            // Apply the transform
-            innerDiv.style.transform = 'translate(0px, ' + targetY + 'px)';
+            // Set scrollTop directly
+            scrollContainer.scrollTop = scrollPosition;
             
-            // Trigger any scroll event listeners
-            var event = new Event('scroll');
-            container.dispatchEvent(event);
+            // Also try scrollTo for browsers that support it
+            if (scrollContainer.scrollTo) {
+                scrollContainer.scrollTo({ top: scrollPosition, behavior: 'auto' });
+            }
             
-            console.log('Scrolled to row ' + rowNumber + ' with transform: ' + targetY + 'px');
+            // Dispatch scroll event to trigger lazy loading
+            var scrollEvent = new Event('scroll', { bubbles: true, cancelable: true });
+            scrollContainer.dispatchEvent(scrollEvent);
+            
             return true;
             """
             
-            result = self.driver.execute_script(script, row_number)
+            self.driver.execute_script(script, row_number)
+            
+            # Wait for lazy loading to render new elements
             import time
-            time.sleep(0.5)  # Wait for lazy loading to render the elements
-            return result if result else False
+            time.sleep(0.8)  # Increased wait time for lazy loading
+            
+            # Verify the row is now present
+            try:
+                self.driver.find_element(By.ID, f'sBf51r{row_number}')
+                return True
+            except:
+                return False
             
         except Exception as e:
-            logger.error(f"_scroll_to_row_by_transform failed: {e}")
+            print(f"_scroll_to_row_by_transform failed: {e}")
             return False
     
-    def populate_row(self, row_number: int, first_row_number: int, num_cpts: int, rejection: Rejections):
+    def populate_row(self, row_number: int, rejection: Rejections):
         rejection_locator = (By.ID, f'{self.REJECTION_FIELD_BASE}{row_number}')
         try:
+            self._scroll_to_row_by_transform(row_number)
             row_element = self.driver.find_element(By.ID, self.ROW_BASE + str(row_number))
-            dropdown = PostDropdown(self.driver, row_element)
-            dropdown.set_value('R')
-            # if row_number > 1:
-            #     self._scroll_to_row_by_transform(row_number)
         except Exception:
             logger.error(f"Row {row_number} not found even after scrolling. Available rows may be limited.")
             raise NoSuchElementException(f"Unable to locate row {row_number} after multiple scroll attempts")
-
+        
+        dropdown = PostDropdown(self.driver, row_element)
+        dropdown.set_value('R')
+            
         try:
             rejection_field = WebDriverWait(self.driver, 3)\
                 .until(EC.element_to_be_clickable(rejection_locator))
             rejection_field.click()
             rejection_field.clear()
             
-            if row_number > first_row_number:
-                num_tabs = 2 if row_number >= num_cpts else 7
-            else:
-                num_tabs = 1
-            rejection_field.send_keys(rejection.RejCode1 + Keys.TAB * num_tabs)
+            rejection_field.send_keys(rejection.RejCode1 + Keys.TAB * 2)
 
         except TimeoutException:
             logger.error(f"Rejection field for row {row_number} not found or not clickable.")
