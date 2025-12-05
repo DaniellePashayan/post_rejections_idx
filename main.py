@@ -3,6 +3,7 @@ from pages.modals.payment_code import PaymentCodesModal
 from pages.modals.reset_modal import ResetModal
 from pages.open_settings import SettingsPage
 from pages.open_vtb import VTBPage
+from pages.post_receipts.pp_bulk import PP_Bulk
 from pages.post_receipts.pp_main import PICScreen_Main
 from pages.post_receipts.pp_lipp import PP_LIPP
 from pages.post_receipts.pp_lipp_rejections import PP_LIPP_Rejections
@@ -64,7 +65,6 @@ def main():
         db_manager = DBManager()
         
         input_file = InputFile(file, db_manager)
-        input_file.load_data()
     
         options = webdriver.ChromeOptions()
         options.add_argument("--force-device-scale-factor=0.75")
@@ -155,30 +155,34 @@ def main():
                                 db_manager.update_row(rejection)
                                 continue
                             pic_screen.set_line_item_post_checkbox(rejection.LineItemPost)
-                    
-                    pp_lipp = PP_LIPP(driver, screenshot_manager)
-                    starting_index, num_cpts_to_post = pp_lipp.num_rows_to_process()
-                    
-                    # posting the first rejection will pull up the pp_lipp_rejection screen
-                    pp_lipp.populate_row(starting_index, rejection)
-                    
-                    pp_lipp_rej = PP_LIPP_Rejections(driver, rejection)
-                    pp_lipp_rej.enter_carrier(rejection.Carrier)
-                    reset_modal = ResetModal(driver, screenshot_manager)
-                    modal_text = reset_modal.close_if_present()
-                    if modal_text is not None:
-                        logger.info(f"Modal detected during rejection entry: {modal_text}")
+                    if rejection.LineItemPost == 1:
+                        pp_lipp = PP_LIPP(driver, screenshot_manager)
+                        starting_index, num_cpts_to_post = pp_lipp.num_rows_to_process()
+                        
+                        # posting the first rejection will pull up the pp_lipp_rejection screen
+                        pp_lipp.populate_row(starting_index, rejection)
+                        
+                        pp_lipp_rej = PP_LIPP_Rejections(driver, rejection)
+                        pp_lipp_rej.enter_carrier(rejection.Carrier)
+                        reset_modal = ResetModal(driver, screenshot_manager)
+                        modal_text = reset_modal.close_if_present()
+                        if modal_text is not None:
+                            logger.info(f"Modal detected during rejection entry: {modal_text}")
 
-                    pp_lipp_rej.close_screen()
-                    
-                    if num_cpts_to_post > 1 and starting_index > 1:
-                        num_cpts_to_post = num_cpts_to_post + 1
-                    
-                    for cpt_row in range(starting_index+1, num_cpts_to_post + 1):
-                        # start at 2 since the pp_lipp_rejection screen already populated row 1
-                        logger.debug(f"Processing CPT row {cpt_row} of {num_cpts_to_post}")
-                        pp_lipp.populate_row(cpt_row, rejection)
-                    posted = pp_lipp.finalize_posting()
+                        pp_lipp_rej.close_screen()
+                        
+                        if num_cpts_to_post > 1 and starting_index > 1:
+                            num_cpts_to_post = num_cpts_to_post + 1
+                        
+                        for cpt_row in range(starting_index+1, num_cpts_to_post + 1):
+                            # start at 2 since the pp_lipp_rejection screen already populated row 1
+                            logger.debug(f"Processing CPT row {cpt_row} of {num_cpts_to_post}")
+                            pp_lipp.populate_row(cpt_row, rejection)
+                        posted = pp_lipp.finalize_posting()
+                    else:
+                        pp_bulk = PP_Bulk(driver)
+                        if pp_bulk.enter_bulk_pp_screen():
+                            posted = pp_bulk.enter_rejection_remarks(rejection)
                     if posted:
                         rejection.Completed = 1
                         db_manager.update_row(rejection)
