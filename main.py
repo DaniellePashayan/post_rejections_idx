@@ -155,7 +155,7 @@ def main():
                                 db_manager.update_row(rejection)
                                 continue
                             pic_screen.set_line_item_post_checkbox(rejection.LineItemPost)
-                    if rejection.LineItemPost == 1:
+                    if rejection.LineItemPost:
                         pp_lipp = PP_LIPP(driver, screenshot_manager)
                         starting_index, num_cpts_to_post = pp_lipp.num_rows_to_process()
                         
