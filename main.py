@@ -222,7 +222,7 @@ def main():
             shutil.move(file, os.path.join(archive_dir, os.path.basename(file)))
 
     settings_page.logout()
-    t.sleep(2)
+    t.sleep(5)
     driver.quit()
 
 if __name__ == "__main__":
