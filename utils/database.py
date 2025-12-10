@@ -51,6 +51,7 @@ class Rejections(SQLModel, table=True, extend_existing=True):
     FileName: str = Field(primary_key=True, index=True)
     Completed: bool = Field(default=False, index=True)
     Comment: Optional[str] = Field(default=None)
+    BatchNumber: Optional[str] = Field(default=None, index=True)
 
     @field_validator("Carrier")
     def validate_carrier(cls, v: Optional[str]) -> Optional[str]:

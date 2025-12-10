@@ -65,6 +65,7 @@ def main():
         db_manager = DBManager()
         
         input_file = InputFile(file, db_manager)
+        input_file.load_data()
     
         options = webdriver.ChromeOptions()
         options.add_argument("--force-device-scale-factor=0.75")
@@ -105,13 +106,17 @@ def main():
             if not vtb.validate_current_selection("Payment Posting"):
                 vtb.select_vtb_option("Payment Posting")
             
-            # TODO: notate batch number in DB and logs
             pp_batch.open_batch()
+            batch_number = pp_batch.batch_number
+            logger.info(f"Processing group {group} with batch number: {batch_number}")
             t.sleep(2)
             
             for rejection in tqdm(group_data, total=len(group_data), desc=f"Processing group {group}"):
                 try:
-                    logger.info(f"Processing patient: {rejection.InvoiceNumber}")
+                    # Set batch number for this rejection
+                    rejection.BatchNumber = batch_number
+                    
+                    logger.info(f"Processing patient: {rejection.InvoiceNumber} in batch: {batch_number}")
 
                     select_patient = PP_SelectPatient(driver, screenshot_manager)
                     select_patient.reset_patient()
@@ -220,10 +225,10 @@ def main():
             if not os.path.exists(archive_dir):
                 os.makedirs(archive_dir)
             shutil.move(file, os.path.join(archive_dir, os.path.basename(file)))
-
-    settings_page.logout()
-    t.sleep(5)
-    driver.quit()
+    else:
+        settings_page.logout()
+        t.sleep(5)
+        driver.quit()
 
 if __name__ == "__main__":
     try:

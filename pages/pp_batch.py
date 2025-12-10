@@ -19,6 +19,8 @@ class PaymentPostingBatch:
     
     OK_BUTTON = (By.ID, "OK")
     
+    batch_number = ''
+    
     def __init__(self, driver):
         self.driver = driver
 
@@ -163,6 +165,9 @@ class PaymentPostingBatch:
             if not self._safe_click(self.ACTIONS_FIELD):
                 logger.error("Could not focus Actions field due to persistent interception.")
                 return False
+        
+        self.batch_number = self.driver.find_element(*self.BATCH_NUMBER_FIELD).get_attribute("value")
+        logger.info(f"Batch number set to: {self.batch_number}")
         
         if self._check_batch_fields():
             if not self._safe_click(self.OK_BUTTON):
