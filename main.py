@@ -58,42 +58,42 @@ def main():
     if files_to_process == []:
         send_error_notification("No files to process.")
         return
+    
+    options = webdriver.ChromeOptions()
+    options.add_argument("--force-device-scale-factor=0.75")
+    options.add_argument("--start-maximized")
+    if os.getenv("ENVIRONMENT").lower() == "production":
+        options.add_argument('--headless=new')
+        options.add_argument('--no-sandbox')
+        options.add_argument('--disable-dev-shm-usage')
+    else:
+        # add remote debugging for non-production
+        options.add_argument("--remote-debugging-port=9222")            
 
-    for file in files_to_process:
+    driver = webdriver.Chrome(options=options)
+
+    # Initialize screenshot manager for error debugging
+    screenshot_manager = ScreenshotManager(driver, log_folder_path)
+    
+    db_manager = DBManager()
+    
+    login = LoginPage(driver, screenshot_manager)
+    login.navigate_to_login()
+    logged_in = login.login(os.getenv("IDX_USERNAME"), os.getenv("IDX_PASSWORD"))
+    if not logged_in:
+        logger.error("Login failed, terminating script.")
+        return
+    
+    settings_page = SettingsPage(driver)
+    vtb = VTBPage(driver)
+    pp_batch = PaymentPostingBatch(driver)
+    pic_screen = PICScreen_Main(driver)
+        
+    for file in tqdm(files_to_process, desc="Processing input files"):
         logger.info(f"Using input file: {file}")
 
-        db_manager = DBManager()
-        
         input_file = InputFile(file, db_manager)
         input_file.load_data()
-    
-        options = webdriver.ChromeOptions()
-        options.add_argument("--force-device-scale-factor=0.75")
-        options.add_argument("--start-maximized")
-        if os.getenv("ENVIRONMENT").lower() == "production":
-            options.add_argument('--headless=new')
-            options.add_argument('--no-sandbox')
-            options.add_argument('--disable-dev-shm-usage')
-        else:
-            # add remote debugging for non-production
-            options.add_argument("--remote-debugging-port=9222")            
-    
-        driver = webdriver.Chrome(options=options)
-        
-        # Initialize screenshot manager for error debugging
-        screenshot_manager = ScreenshotManager(driver, log_folder_path)
-        
-        login = LoginPage(driver, screenshot_manager)
-        login.navigate_to_login()
-        logged_in = login.login(os.getenv("IDX_USERNAME"), os.getenv("IDX_PASSWORD"))
-        if not logged_in:
-            logger.error("Login failed, terminating script.")
-            return
-        
-        settings_page = SettingsPage(driver)
-        vtb = VTBPage(driver)
-        pp_batch = PaymentPostingBatch(driver)
-        pic_screen = PICScreen_Main(driver)
         
         for group, group_data in tqdm(input_file.group_data.items(), desc=f"Processing groups"):
             if group_data == []:
