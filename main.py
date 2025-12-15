@@ -62,7 +62,7 @@ def main():
     options = webdriver.ChromeOptions()
     options.add_argument("--force-device-scale-factor=0.75")
     options.add_argument("--start-maximized")
-    if os.getenv("ENVIRONMENT").lower() == "production":
+    if os.getenv("ENVIRONMENT", "").lower() == "production":
         options.add_argument('--headless=new')
         options.add_argument('--no-sandbox')
         options.add_argument('--disable-dev-shm-usage')
@@ -122,7 +122,7 @@ def main():
                     select_patient.reset_patient()
                     patient_changed = select_patient.select_patient(rejection.InvoiceNumber)
                     
-                    if patient_changed is not True:
+                    if patient_changed is not True and patient_changed:
                         rejection.Comment = f"Modal detected during patient selection: {patient_changed}"
                         db_manager.update_row(rejection)
                         if 'group' in patient_changed.lower():

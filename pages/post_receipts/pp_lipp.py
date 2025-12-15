@@ -23,11 +23,11 @@ class PP_LIPP:
     OK_BUTTON = (By.ID, 'OK')
     CANCEL_BUTTON = (By.ID, 'Cancel')
 
-    def __init__(self, driver, screenshot_manager: ScreenshotManager = None):
+    def __init__(self, driver, screenshot_manager: ScreenshotManager | None = None):
         self.driver = driver
         self.screenshot_manager = screenshot_manager
     
-    def num_rows_to_process(self) -> Tuple[int, int] | None:
+    def num_rows_to_process(self) -> Tuple[int, int]:
         R1_CPT_INDEX_BASE = 'sBf8r'
         index=0
         R1_DROPDOWN_LOCATOR = None
