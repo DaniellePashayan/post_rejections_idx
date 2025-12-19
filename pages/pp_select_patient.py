@@ -22,7 +22,7 @@ class PP_SelectPatient:
     DECEASED_MODAL_INDICATOR = (By.CSS_SELECTOR, "div.fe_c_overlay__dialog.fe_c_modal__dialog.fe_c_modal__dialog--large.fe_c_modal__dialog--padded.fe_is-info")
     MODAL_CLOSE = (By.ID, "modalButtonOk")
     
-    def __init__(self, driver, screenshot_manager: ScreenshotManager):
+    def __init__(self, driver, screenshot_manager: ScreenshotManager | None):
         self.driver = driver
         self.screenshot_manager = screenshot_manager
     

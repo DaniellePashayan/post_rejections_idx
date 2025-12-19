@@ -83,7 +83,7 @@ class PaymentPostingBatch:
             if batch_number == "":
                 return False
             
-            if batch_number.isdigit():
+            if batch_number and batch_number.isdigit():
                 logger.info(f"Batch number {batch_number} is open.")
                 return True
         except TimeoutException:

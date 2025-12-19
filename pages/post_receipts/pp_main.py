@@ -1,7 +1,7 @@
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
-from selenium.common.exceptions import TimeoutException, ElementClickInterceptedException
+from selenium.common.exceptions import TimeoutException
 from selenium.webdriver.common.keys import Keys
 import time
 from loguru import logger
@@ -17,9 +17,11 @@ class PICScreen_Main:
     CODE_FIELD = (By.ID, "sAf21r1")
     CODE_MAGNIFY_ICON = (By.ID, "sAf21r1-button")
     
+    ADDITIONAL_TRANSACTION_FIELD = (By.ID, "sAf41r2")
+    
     LI_POST_CHECKBOX = (By.XPATH, "//input[@id='sAf32r1']")
     
-    def __init__(self, driver, screenshot_manager: ScreenshotManager = None):
+    def __init__(self, driver, screenshot_manager: ScreenshotManager | None = None):
         self.driver = driver
         self.screenshot_manager = screenshot_manager
     
@@ -83,6 +85,33 @@ class PICScreen_Main:
         rej_field.click()
         rej_field.clear()
         rej_field.send_keys(code + Keys.TAB)
+    
+    def _enter_additional_transaction(self, paycode: str):
+        addl_field = WebDriverWait(self.driver, 10).until(EC.presence_of_element_located(self.ADDITIONAL_TRANSACTION_FIELD))
+        addl_field.click()
+        addl_field.clear()
+        addl_field.send_keys(paycode + Keys.TAB)
+    
+    def post_additional_transaction(self, paycode: str, record, comment: str = ""):
+        self._enter_additional_transaction(paycode)
+        time.sleep(0.5)
+        if not self._confirm_field_populated(self.ADDITIONAL_TRANSACTION_FIELD, paycode):
+            logger.error(f"Additional Transaction field not populated with {paycode}, retrying")
+            time.sleep(0.5)
+            self._enter_additional_transaction(paycode)
+        
+        AMT_FIELD = (By.ID, "sAf42r2")
+        amt_field = WebDriverWait(self.driver, 1).until(EC.presence_of_element_located(AMT_FIELD))
+        amt_field.click()
+        amt_field.clear()
+        amt_field.send_keys(str(record.invoice_balance) + Keys.TAB)
+        
+        comment_field = self.driver.find_element(By.ID, "sAf47r2")
+        comment_field.click()
+        comment_field.clear()
+        comment_field.send_keys(comment + Keys.TAB)
+        
+        self.driver.find_element(By.ID, "OK").click()
     
     def set_line_item_post_checkbox(self, post_line_item: bool):
         def check_if_checkbox_selected(element):
