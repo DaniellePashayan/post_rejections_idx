@@ -1,12 +1,14 @@
-from sqlmodel import create_engine, SQLModel, Field, Session, select, update, col
-from sqlalchemy import CheckConstraint, and_
-from typing import Optional
-from pydantic import field_validator, ConfigDict
-import os
-from loguru import logger
-from typing import List
+"""Database models and management for rejection tracking system."""
 
-# create validation to ensure "carrier" field matches existing carriers in the system
+import os
+from typing import List, Optional
+
+from loguru import logger
+from pydantic import ConfigDict, field_validator
+from sqlalchemy import CheckConstraint, and_
+from sqlmodel import Field, Session, SQLModel, col, create_engine, select, update
+
+# Constants
 ALLOWED_CARRIERS = [
     "AARP", "AETNA", "AFFINITY", "ALICARE", "AMERICHOICE", "AMERIGROUP",
     "AMERIHEALTH", "ATLANTIS", "BEECH STREET", "BLUE CROSS BLUE SHIELD",
@@ -21,7 +23,10 @@ ALLOWED_CARRIERS = [
     "WELLCARE", "WORKERS COMP", ""
 ]
 
+
 class Rejections(SQLModel, table=True, extend_existing=True):
+    """Database model for payment rejection records."""
+    
     __table_args__ = (
         CheckConstraint(
             # Allow NULL values by adding "OR Carrier IS NULL"
@@ -83,30 +88,56 @@ class Rejections(SQLModel, table=True, extend_existing=True):
         # Fallback to Python truthiness
         return bool(v)
 
+
 class DBManager:
+    """Manages database operations for rejection tracking."""
+    
     URL = f'sqlite:///{os.path.join(os.getcwd(), "rejections.db")}'
     
-    def __init__(self, URL=URL):
-        self.engine = create_engine(URL)
+    def __init__(self, url: str = URL):
+        """Initialize database manager.
+        
+        Args:
+            url: SQLite database URL (default: rejections.db in current directory)
+        """
+        self.engine = create_engine(url)
     
     def get_engine(self):
+        """Get the SQLAlchemy engine instance.
+        
+        Returns:
+            SQLAlchemy engine
+        """
         return self.engine
     
-    def create_db_and_tables(self):
+    def create_db_and_tables(self) -> None:
+        """Create database and all tables if they don't exist."""
         try:
             SQLModel.metadata.create_all(self.engine)
             logger.success("Database and tables created successfully.")
         except Exception as e:
             logger.error(f"Error creating database and tables: {e}")
+            raise
     
-    def add_rejections(self, rejections: List[Rejections]):
+    def add_rejections(self, rejections: List[Rejections]) -> None:
+        """Add new rejection records to the database, avoiding duplicates.
+        
+        Args:
+            rejections: List of Rejections objects to add
+        """
+        if not rejections:
+            logger.debug("No rejections to add")
+            return
+            
         with Session(self.engine) as session:
             new_invoice_numbers = [r.InvoiceNumber for r in rejections]
             new_filenames = [r.FileName for r in rejections]
             
-            statement = select(Rejections.InvoiceNumber)\
-                .where(col(Rejections.InvoiceNumber).in_(new_invoice_numbers))\
+            statement = (
+                select(Rejections.InvoiceNumber)
+                .where(col(Rejections.InvoiceNumber).in_(new_invoice_numbers))
                 .where(col(Rejections.FileName).in_(new_filenames))
+            )
                 
             existing_numbers = set(session.exec(statement).all())
             
@@ -119,8 +150,19 @@ class DBManager:
                 session.add_all(new_rejections_to_add)
                 session.commit()
                 logger.success(f"Added {len(new_rejections_to_add)} new rejections to the database.")
+            else:
+                logger.debug("All rejections already exist in database")
+    
+    def get_unposted_invoices(self, file_name: str, group: int) -> List[Rejections]:
+        """Get all unposted rejection records for a specific file and group.
+        
+        Args:
+            file_name: Name of the CSV file
+            group: Group number
             
-    def get_unposted_invoices(self, file_name: str, group:int) -> List[Rejections]:
+        Returns:
+            List of unposted Rejections objects
+        """
         with Session(self.engine) as session:
             statement = select(Rejections).where(
                 Rejections.FileName == file_name,
@@ -130,7 +172,15 @@ class DBManager:
             )
             return list(session.exec(statement).all())
     
-    def update_row(self, rejection: Rejections):
+    def update_row(self, rejection: Rejections) -> int:
+        """Update a rejection record in the database.
+        
+        Args:
+            rejection: Rejection object with updated values
+            
+        Returns:
+            Number of rows updated (should be 0 or 1)
+        """
         updates = rejection.model_dump(
             exclude_unset=True, 
             exclude_none=True, 
