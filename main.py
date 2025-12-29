@@ -117,6 +117,70 @@ def create_chrome_driver() -> webdriver.Chrome:
     return webdriver.Chrome(options=options)
 
 
+def recover_from_fatal_error(
+    driver: webdriver.Chrome,
+    settings_page: SettingsPage,
+    vtb: VTBPage,
+    pp_batch: PaymentPostingBatch,
+    login_page: LoginPage,
+    group: int,
+    username: str,
+    password: str
+) -> bool:
+    """Attempt to recover from fatal error by logging out and back in.
+    
+    Args:
+        driver: Selenium WebDriver instance
+        settings_page: Settings page object
+        vtb: VTB page object
+        pp_batch: Payment posting batch page object
+        login_page: Login page object
+        group: Group number to restore
+        username: IDX username
+        password: IDX password
+        
+    Returns:
+        True if recovery succeeded, False otherwise
+    """
+    try:
+        logger.warning("Attempting recovery: logging out and back in...")
+        
+        # Try to logout
+        try:
+            settings_page.logout()
+            time.sleep(2)
+        except Exception as logout_error:
+            logger.warning(f"Logout failed during recovery: {logout_error}")
+        
+        # Re-login
+        login_page.navigate_to_login()
+        time.sleep(2)
+        
+        if not login_page.login(username, password):
+            logger.error("Login failed during recovery")
+            return False
+        
+        logger.info("Successfully logged back in")
+        
+        # Restore group and VTB selection
+        settings_page.change_group(group)
+        time.sleep(1)
+        
+        if not vtb.validate_current_selection("Payment Posting"):
+            vtb.select_vtb_option("Payment Posting")
+        
+        # Re-open batch
+        pp_batch.open_batch()
+        time.sleep(BATCH_OPEN_RETRY_SLEEP)
+        
+        logger.success("Recovery successful - ready to continue processing")
+        return True
+        
+    except Exception as e:
+        logger.error(f"Recovery failed: {e}")
+        return False
+
+
 def process_rejection(
     rejection: Rejections,
     driver: webdriver.Chrome,
@@ -222,10 +286,9 @@ def process_rejection(
         try:
             pp_batch.open_batch()
         except Exception as recovery_error:
-            send_error_notification("FATAL ERROR: Unable to recover during processing.")
             logger.error(f"Failed to recover after error: {recovery_error}")
             screenshot_manager.capture_error_screenshot("Recovery attempt failed", recovery_error)
-            raise  # Re-raise to signal fatal error
+            # Don't send notification or re-raise here - let the main loop handle it
         
         return False
 
@@ -357,6 +420,10 @@ def main() -> None:
     pp_batch = PaymentPostingBatch(driver)
     pic_screen = PICScreen_Main(driver)
     
+    # Track consecutive failures for recovery logic
+    consecutive_failures = 0
+    max_consecutive_failures = 3
+    
     try:
         # Process each file
         for file_path in tqdm(files_to_process, desc="Processing input files"):
@@ -386,7 +453,7 @@ def main() -> None:
                 
                 # Process each rejection in the group
                 for rejection in tqdm(group_data, total=len(group_data), desc=f"Processing group {group}"):
-                    process_rejection(
+                    success = process_rejection(
                         rejection=rejection,
                         driver=driver,
                         screenshot_manager=screenshot_manager,
@@ -394,6 +461,39 @@ def main() -> None:
                         batch_number=batch_number,
                         pp_batch=pp_batch
                     )
+                    
+                    # Track failures for recovery logic
+                    if not success:
+                        consecutive_failures += 1
+                        logger.warning(f"Consecutive failures: {consecutive_failures}/{max_consecutive_failures}")
+                        
+                        # If we hit max consecutive failures, try full recovery
+                        if consecutive_failures >= max_consecutive_failures:
+                            logger.error(f"Hit {max_consecutive_failures} consecutive failures - attempting full recovery")
+                            send_error_notification(f"Attempting recovery after {consecutive_failures} consecutive failures")
+                            
+                            if recover_from_fatal_error(
+                                driver=driver,
+                                settings_page=settings_page,
+                                vtb=vtb,
+                                pp_batch=pp_batch,
+                                login_page=login,
+                                group=group,
+                                username=username,
+                                password=password
+                            ):
+                                # Recovery successful - update batch number and reset counter
+                                batch_number = pp_batch.batch_number
+                                logger.info(f"Recovery successful - continuing with batch: {batch_number}")
+                                consecutive_failures = 0
+                            else:
+                                # Recovery failed - send notification and break
+                                logger.critical("Recovery failed - stopping processing for this group")
+                                send_error_notification("FATAL ERROR: Recovery failed after multiple attempts")
+                                break
+                    else:
+                        # Reset counter on success
+                        consecutive_failures = 0
                 
                 # Archive file if all rejections completed
                 archive_file_if_complete(
