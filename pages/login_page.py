@@ -25,9 +25,15 @@ class LoginPage:
         # Use an explicit wait to ensure the element is ready
         WebDriverWait(self.driver, 10).until(
             EC.presence_of_element_located(self.USERNAME_INPUT)
-        ).send_keys(username)
+        )
+        username_input = self.driver.find_element(*self.USERNAME_INPUT)
+        username_input.clear()
+        username_input.send_keys(username)
         
-        self.driver.find_element(*self.PASSWORD_INPUT).send_keys(password)
+        password_input = self.driver.find_element(*self.PASSWORD_INPUT)
+        password_input.clear()
+        password_input.send_keys(password)
+        
         self.driver.find_element(*self.LOGIN_BUTTON).click()
 
         try:
