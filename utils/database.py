@@ -1,7 +1,7 @@
-from sqlmodel import create_engine, SQLModel, Field, Session, select, update
-from sqlalchemy import CheckConstraint
+from sqlmodel import create_engine, SQLModel, Field, Session, select, update, col
+from sqlalchemy import CheckConstraint, and_
 from typing import Optional
-from pydantic import ConfigDict, field_validator
+from pydantic import field_validator, ConfigDict
 import os
 from loguru import logger
 from typing import List
@@ -30,7 +30,7 @@ class Rejections(SQLModel, table=True, extend_existing=True):
         ),
     )
     
-    model_config = ConfigDict(populate_by_name=True)
+    model_config = ConfigDict(populate_by_name=True) # type: ignore
     
     InvoiceNumber: int = Field(primary_key=True, index=True, alias="Invoice Number")
     Carrier: Optional[str] = Field(default='', alias="Carrier")
@@ -105,8 +105,8 @@ class DBManager:
             new_filenames = [r.FileName for r in rejections]
             
             statement = select(Rejections.InvoiceNumber)\
-                .where(Rejections.InvoiceNumber.in_(new_invoice_numbers))\
-                .where(Rejections.FileName.in_(new_filenames))
+                .where(col(Rejections.InvoiceNumber).in_(new_invoice_numbers))\
+                .where(col(Rejections.FileName).in_(new_filenames))
                 
             existing_numbers = set(session.exec(statement).all())
             
@@ -124,11 +124,11 @@ class DBManager:
         with Session(self.engine) as session:
             statement = select(Rejections).where(
                 Rejections.FileName == file_name,
-                Rejections.Completed == 0,
+                Rejections.Completed == False,
                 Rejections.Group == group,
                 Rejections.Comment == None
             )
-            return session.exec(statement).all()
+            return list(session.exec(statement).all())
     
     def update_row(self, rejection: Rejections):
         updates = rejection.model_dump(
@@ -141,18 +141,26 @@ class DBManager:
         updates.pop("InvoiceNumber", None)
         updates.pop("FileName", None)
         
-        valid_cols = {c.name for c in Rejections.__table__.columns}
+        valid_cols = {c.name for c in Rejections.__table__.columns}  # type: ignore[attr-defined]
         updates = {k: v for k, v in updates.items() if k in valid_cols}
         
         if not updates:
             return 0
         
         with Session(self.engine) as session:
+            # build where clause by chaining to satisfy type-checkers and
+            # ensure SQLAlchemy receives ColumnElement expressions
+            # Use the table column objects for SQL expressions to satisfy
+            # type-checkers and to avoid mixing Pydantic field objects with
+            # SQLAlchemy column expressions.
+            table_cols = getattr(Rejections, "__table__").c
             stmt = (
                 update(Rejections)
                 .where(
-                    Rejections.InvoiceNumber == rejection.InvoiceNumber,
-                    Rejections.FileName == rejection.FileName,
+                    and_(
+                        table_cols.InvoiceNumber == rejection.InvoiceNumber,
+                        table_cols.FileName == rejection.FileName,
+                    )
                 )
                 .values(**updates)
             )

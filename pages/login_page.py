@@ -13,7 +13,7 @@ class LoginPage:
     PASSWORD_INPUT = (By.ID, "password")
     LOGIN_BUTTON = (By.ID, "pfh-login-module-button-login")
     
-    def __init__(self, driver, screenshot_manager: ScreenshotManager = None):
+    def __init__(self, driver, screenshot_manager: ScreenshotManager | None = None):
         self.driver = driver
         self.screenshot_manager = screenshot_manager
 
@@ -37,7 +37,7 @@ class LoginPage:
             error_text = error.text
             logger.error(f"Login error message: {error_text}")
             if self.screenshot_manager:
-                self.screenshot_manager.capture_error_screenshot("login_failure", "Login failed - error message displayed")
+                self.screenshot_manager.capture_error_screenshot("login_failure", Exception("Login failed - error message displayed"))
             raise Exception("Login failed - invalid credentials")
         except TimeoutException:
             logger.info("Login successful - no error message detected")
