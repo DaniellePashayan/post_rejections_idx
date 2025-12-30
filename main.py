@@ -506,13 +506,13 @@ def main() -> None:
                         # Reset counter on success
                         consecutive_failures = 0
                 
-                # Archive file if all rejections completed
-                archive_file_if_complete(
-                    file_path=file_path,
-                    file_name=os.path.basename(file_path),
-                    group=group,
-                    db_manager=db_manager
-                )
+            # Archive file if all rejections completed
+            archive_file_if_complete(
+                file_path=file_path,
+                file_name=os.path.basename(file_path),
+                group=group,
+                db_manager=db_manager
+            )
     
     finally:
         # Cleanup
