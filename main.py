@@ -26,6 +26,7 @@ from pages.pp_batch import PaymentPostingBatch
 from pages.pp_select_patient import PP_SelectPatient
 from utils.database import DBManager, Rejections
 from utils.file_reader import InputFile
+from utils.log_cleanup import cleanup_old_logs
 from utils.notify import send_error_notification
 from utils.screenshot import ScreenshotManager
 
@@ -34,6 +35,7 @@ INPUT_FILE_PATH = '//NT2KWB972SRV03/SHAREDATA/CPP-Data/CBO Westbury Managers/LEA
 CHROME_SCALE_FACTOR = 0.75
 REMOTE_DEBUG_PORT = 9222
 BATCH_OPEN_RETRY_SLEEP = 2  # seconds
+LOG_RETENTION_DAYS = 7  # Keep logs for 7 days
 
 
 def setup_logging(log_folder_path: Path) -> None:
@@ -387,6 +389,15 @@ def main() -> None:
     # Setup logging
     log_folder_path = get_log_folder_path()
     setup_logging(log_folder_path)
+    
+    # Clean up old logs
+    try:
+        logger.info(f"Cleaning up logs older than {LOG_RETENTION_DAYS} days...")
+        cleanup_stats = cleanup_old_logs(days_to_keep=LOG_RETENTION_DAYS, dry_run=False)
+        if cleanup_stats.get("deleted_dirs", 0) > 0:
+            logger.info(f"Log cleanup freed {cleanup_stats['freed_bytes'] / 1024 / 1024:.2f} MB")
+    except Exception as e:
+        logger.warning(f"Log cleanup failed (non-critical): {e}")
     
     # Find files to process
     files_to_process = get_files_to_process()
