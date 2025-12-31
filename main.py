@@ -357,29 +357,35 @@ def _process_bulk_post(rejection: Rejections, driver: webdriver.Chrome) -> bool:
 def archive_file_if_complete(
     file_path: str,
     file_name: str,
-    group: int,
+    groups: List[int],
     db_manager: DBManager
 ) -> None:
-    """Archive file if all rejections for the group are processed.
+    """Archive file if all rejections for all groups are processed.
     
     Args:
         file_path: Full path to the file
         file_name: Base name of the file
-        group: Group number
+        groups: List of all group numbers in the file
         db_manager: Database manager for checking completion status
     """
-    unposted_invoices = db_manager.get_unposted_invoices(file_name, group)
+    # Check if all groups have been fully processed
+    incomplete_groups = []
     
-    if unposted_invoices:
+    for group in groups:
+        unposted_invoices = db_manager.get_unposted_invoices(file_name, group)
+        if unposted_invoices:
+            incomplete_groups.append(group)
+    
+    if incomplete_groups:
         logger.warning(
-            f"Not all rejections for file {file_name} and group {group} were processed. "
-            "They will not be archived."
+            f"Not all rejections for file {file_name} were processed. "
+            f"Incomplete groups: {incomplete_groups}. File will not be archived."
         )
     else:
         archive_dir = Path(INPUT_FILE_PATH) / "ARCHIVE"
         archive_dir.mkdir(exist_ok=True)
         shutil.move(file_path, archive_dir / file_name)
-        logger.info(f"Archived {file_name} to {archive_dir}")
+        logger.info(f"Archived {file_name} to {archive_dir} (all groups completed)")
 
 
 def main() -> None:
@@ -505,12 +511,12 @@ def main() -> None:
                     else:
                         # Reset counter on success
                         consecutive_failures = 0
-                
-            # Archive file if all rejections completed
+            
+            # Archive file if all groups have been fully processed
             archive_file_if_complete(
                 file_path=file_path,
                 file_name=os.path.basename(file_path),
-                group=group,
+                groups=list(input_file.group_data.keys()),
                 db_manager=db_manager
             )
     
