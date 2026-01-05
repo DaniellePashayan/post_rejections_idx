@@ -82,17 +82,34 @@ def get_files_to_process() -> List[str]:
         List of file paths to process
     """
     now = datetime.now()
-    file_date_format = now.strftime("%m_%d_%Y")
-    llerina_file_date_format = now.strftime("%m_%d_%y")
+    
+    # Generate date patterns (zero-padded)
+    date_patterns = [
+        now.strftime("%m_%d_%Y"),  # 01_05_2026
+        now.strftime("%m_%d_%y"),  # 01_05_26
+        now.strftime("%m.%d.%y"),  # 01.05.26
+    ]
+    
+    # Add non-zero-padded variants for single-digit months/days
+    # e.g., "1.5.26" instead of "01.05.26"
+    month = now.month
+    day = now.day
+    year_2digit = now.strftime("%y")
+    
+    date_patterns.extend([
+        f"{month}.{day}.{year_2digit}",
+        f"{month}_{day}_{year_2digit}", 
+    ])
     
     file_name_override = os.getenv("FILE_NAME_OVERRIDE", "").strip()
     if file_name_override:
         file_pattern = f'*{file_name_override}*.csv'
+        files = glob(f'{INPUT_FILE_PATH}/{file_pattern}')
     else:
-        file_pattern = f'*{file_date_format}*.csv'
-    
-    files = glob(f'{INPUT_FILE_PATH}/{file_pattern}')
-    files.extend(glob(f'{INPUT_FILE_PATH}/*{llerina_file_date_format}*.csv'))
+        # Search for all date patterns
+        files = []
+        for pattern in date_patterns:
+            files.extend(glob(f'{INPUT_FILE_PATH}/*{pattern}*.csv'))
     
     logger.debug(f"Files to process: {files}")
     return files
