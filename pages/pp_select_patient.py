@@ -22,6 +22,10 @@ class PP_SelectPatient:
     DECEASED_MODAL_INDICATOR = (By.CSS_SELECTOR, "div.fe_c_overlay__dialog.fe_c_modal__dialog.fe_c_modal__dialog--large.fe_c_modal__dialog--padded.fe_is-info")
     MODAL_CLOSE = (By.ID, "modalButtonOk")
     
+    CLEARABLE_MODALS = [
+        "**Deceased**",
+    ]
+    
     def __init__(self, driver, screenshot_manager: ScreenshotManager | None):
         self.driver = driver
         self.screenshot_manager = screenshot_manager
@@ -77,8 +81,11 @@ class PP_SelectPatient:
         reset_modal = ResetModal(self.driver, self.screenshot_manager)
         modal_text = reset_modal.close_if_present()
         if modal_text is not None:
-            logger.warning(f"Modal detected during patient selection: {modal_text}")
-            return modal_text
+            if modal_text in self.CLEARABLE_MODALS:
+                return True
+            else:
+                logger.warning(f"Modal detected during patient selection: {modal_text}")
+                return modal_text
         else:
             WebDriverWait(self.driver, 5).until(
                 EC.element_to_be_clickable(self.INVOICE_LOCATOR))
