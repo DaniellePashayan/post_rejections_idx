@@ -6,6 +6,9 @@ from selenium.webdriver.common.keys import Keys
 import time
 from loguru import logger
 
+from pages.modals.batch_modal import BatchModal
+from utils.notify import send_error_notification
+
 class PaymentPostingBatch:
     BATCH_HEADER = (By.CLASS_NAME, "fe_c_tabs__label-text")
     BATCH_GROUP_TEXT = (By.ID, "formHeader")
@@ -89,7 +92,7 @@ class PaymentPostingBatch:
         except TimeoutException:
             return False
     
-    def _check_batch_fields(self):
+    def _check_batch_fields(self) -> bool | list:
         fields_to_check = {
             "BATCH_NUMBER_FIELD": self.BATCH_NUMBER_FIELD,
             "BANK_DESPOIT_DATE_FIELD": self.BANK_DESPOIT_DATE_FIELD,
@@ -98,6 +101,9 @@ class PaymentPostingBatch:
             "PAYMENTS_FIELD": self.PAYMENTS_FIELD,
             "ACTIONS_FIELD": self.ACTIONS_FIELD
         }
+        
+        empty_fields = []
+        
         for field_name, locator_tuple in fields_to_check.items():
             try:
                 # Use the locator_tuple for the wait condition
@@ -107,8 +113,16 @@ class PaymentPostingBatch:
                 # Use the locator_tuple to find the element
                 field_value = self.driver.find_element(*locator_tuple).get_attribute("value")
                 if field_value == "":
+                    empty_fields.append(field_name)
                     logger.warning(f"Field {field_name} is empty.")
-                    return False
+                    if field_name == "ACTIONS_FIELD":
+                        send_error_notification(f"Actions field is empty in batch {self.batch_number}. Cannot proceed.")
+                        batch_modal = BatchModal(self.driver)
+                        if batch_modal._is_modal_open():
+                            batch_modal.select_post_receipts()
+                    else:
+                        logger.error(f"Field {field_name} is empty. Cannot proceed.")
+                    return empty_fields
                 
                 # Log using the string key (field_name)
                 logger.debug(f"Field {field_name} is present with value: {field_value}")
@@ -121,7 +135,50 @@ class PaymentPostingBatch:
                 return False
         return True
     
-    def open_batch(self):
+    def _populate_field(self, field_name: str) -> bool:
+        """Populate a single batch field with its configured value.
+        
+        Args:
+            field_name: Name of the field constant (e.g., "BATCH_NUMBER_FIELD")
+            
+        Returns:
+            True if field was populated successfully, False otherwise
+        """
+        field_config = {
+            "BATCH_NUMBER_FIELD": (self.BATCH_NUMBER_FIELD, "G"),
+            "BANK_DESPOIT_DATE_FIELD": (self.BANK_DESPOIT_DATE_FIELD, "T"),
+            "DESCRIPTION_FIELD": (self.DESCRIPTION_FIELD, "AUTO - PIC Scripting"),
+            "PAYMENT_TYPE_FIELD": (self.PAYMENT_TYPE_FIELD, "3"),
+            "PAYMENTS_FIELD": (self.PAYMENTS_FIELD, "0"),
+            "ACTIONS_FIELD": (self.ACTIONS_FIELD, "O"),
+        }
+        
+        if field_name not in field_config:
+            logger.error(f"Unknown field name: {field_name}")
+            return False
+        
+        locator, value = field_config[field_name]
+        
+        try:
+            curr_field = self.driver.find_element(*locator)
+            curr_field.click()
+            curr_field.send_keys(value + Keys.TAB)
+            time.sleep(0.5)
+            logger.debug(f"Populated field {field_name} with value '{value}'")
+            return True
+        except Exception as e:
+            logger.error(f"Failed to populate field {field_name}: {e}")
+            return False
+    
+    def open_batch(self, max_retries: int = 3):
+        """Open a new batch or use an existing one, with retry logic for failed field population.
+        
+        Args:
+            max_retries: Maximum number of times to retry populating empty fields
+            
+        Returns:
+            True if batch opened successfully, False otherwise
+        """
         if not self.is_batch_open():
             logger.info("No batch is currently open. Opening a new batch.")
             time.sleep(1)
@@ -131,35 +188,18 @@ class PaymentPostingBatch:
             )
             time.sleep(3)
         
-            curr_field = self.driver.find_element(*self.BATCH_NUMBER_FIELD)
-            curr_field.click()
-            curr_field.send_keys("G" + Keys.TAB)
-            time.sleep(0.5)
+            # Initial population of all fields
+            field_order = [
+                "BATCH_NUMBER_FIELD",
+                "BANK_DESPOIT_DATE_FIELD",
+                "DESCRIPTION_FIELD",
+                "PAYMENT_TYPE_FIELD",
+                "PAYMENTS_FIELD",
+                "ACTIONS_FIELD",
+            ]
             
-            curr_field = self.driver.find_element(*self.BANK_DESPOIT_DATE_FIELD)
-            curr_field.click()
-            curr_field.send_keys("T" + Keys.TAB)
-            time.sleep(0.5)
-            
-            curr_field = self.driver.find_element(*self.DESCRIPTION_FIELD)
-            curr_field.click()
-            curr_field.send_keys("AUTO - PIC Scripting" + Keys.TAB)
-            time.sleep(0.5)
-            
-            curr_field = self.driver.find_element(*self.PAYMENT_TYPE_FIELD)
-            curr_field.click()
-            curr_field.send_keys("3" + Keys.TAB)
-            time.sleep(0.5)
-            
-            curr_field = self.driver.find_element(*self.PAYMENTS_FIELD)
-            curr_field.click()
-            curr_field.send_keys("0" + Keys.TAB)
-            time.sleep(0.5)
-            
-            curr_field = self.driver.find_element(*self.ACTIONS_FIELD)
-            curr_field.click()
-            curr_field.send_keys("O" + Keys.TAB)
-            time.sleep(0.5)
+            for field_name in field_order:
+                self._populate_field(field_name)
         else:
             # Existing batch open; ensure actions field is safely clickable.
             if not self._safe_click(self.ACTIONS_FIELD):
@@ -169,8 +209,33 @@ class PaymentPostingBatch:
         self.batch_number = self.driver.find_element(*self.BATCH_NUMBER_FIELD).get_attribute("value")
         logger.info(f"Batch number set to: {self.batch_number}")
         
-        if self._check_batch_fields():
-            if not self._safe_click(self.OK_BUTTON):
-                logger.error("Failed to click OK button after filling batch fields.")
+        # Check fields and retry if any are empty
+        retry_count = 0
+        while retry_count < max_retries:
+            batch_fields_check = self._check_batch_fields()
+            
+            if batch_fields_check is True:
+                # All fields populated successfully
+                if not self._safe_click(self.OK_BUTTON):
+                    logger.error("Failed to click OK button after filling batch fields.")
+                    return False
+                return True
+            elif isinstance(batch_fields_check, list):
+                # Some fields are empty, retry populating them
+                retry_count += 1
+                logger.warning(f"Retry attempt {retry_count}/{max_retries} for empty fields: {batch_fields_check}")
+                
+                for empty_field in batch_fields_check:
+                    logger.info(f"Retrying to populate field: {empty_field}")
+                    self._populate_field(empty_field)
+                
+                # Small delay before re-checking
+                time.sleep(1)
+            else:
+                # Unexpected return value (e.g., False from timeout)
+                logger.error(f"Unexpected batch_fields_check result: {batch_fields_check}")
                 return False
-        return True
+        
+        # If we exhausted retries, log final failure
+        logger.error(f"Failed to populate all batch fields after {max_retries} retries.")
+        return False
