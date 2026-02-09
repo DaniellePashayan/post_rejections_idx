@@ -398,6 +398,8 @@ def archive_file_if_complete(
             f"Not all rejections for file {file_name} were processed. "
             f"Incomplete groups: {incomplete_groups}. File will not be archived."
         )
+        send_error_notification(
+            f"File {file_name} not archived - incomplete groups: {incomplete_groups}")
     else:
         archive_dir = Path(INPUT_FILE_PATH) / "ARCHIVE"
         archive_dir.mkdir(exist_ok=True)
